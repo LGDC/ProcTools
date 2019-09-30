@@ -1,3 +1,5 @@
 # For Python 2 compatibility.
 contextlib2
+dropbox
+pysftp
 python-dateutil
