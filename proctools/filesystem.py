@@ -1,4 +1,9 @@
 """File system objects."""
+try:
+    from contextlib import ContextDecorator
+except ImportError:
+    # Py2.
+    from contextlib2 import ContextDecorator
 import logging
 import os
 import subprocess
@@ -10,12 +15,60 @@ __all__ = []
 LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 
-
 SEVEN_ZIP_PATH = os.path.join(
     os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir)),
     "resources\\apps\7_Zip\\x64\\7za.exe",
 )
 """str: Path to 7-Zip command-line app."""
+
+
+class NetUse(ContextDecorator):
+    """Simple manager for network connections.
+
+    Attributes:
+        path (str): Path to share.
+    """
+
+    def __init__(self, unc_path, username=None, password=None):
+        """Initialize instance.
+
+        Args:
+            unc_path (str): Path to the UNC share.
+            username (str): Credential user name.
+            password (str): Credential password.
+        """
+        self.path = unc_path
+        self.__credential = {"username": username, "password": password}
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self.disconnect()
+
+    def __str__(self):
+        return self.path
+
+    def connect(self):
+        """Connects the UNC directory."""
+        LOG.info("Connecting UNC path %s.", self.path)
+        call_string = """net use "{}\"""".format(self.path)
+        if self.__credential["password"]:
+            call_string += " {}".format(self.__credential["password"])
+        if self.__credential["username"]:
+            call_string += """ /user:"{}\"""".format(self.__credential["username"])
+        subprocess.check_call(call_string)
+
+    def disconnect(self):
+        """Disconnects the UNC directory."""
+        LOG.info("Disconnecting UNC path %s.", self.path)
+        call_string = """net use "{}" /delete /yes""".format(self.path)
+        try:
+            subprocess.check_call(call_string)
+        except subprocess.CalledProcessError as disconnect_error:
+            if disconnect_error.returncode == 2:
+                LOG.debug("Network resource %s already disconnected.", self.path)
 
 
 def archive_directory(directory_path, archive_path, directory_as_base=False, **kwargs):
