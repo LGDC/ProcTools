@@ -60,3 +60,6 @@ activate.bat
 .env
 .python-version
 .venv
+
+# Non-code resources.
+resources/*
