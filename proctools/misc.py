@@ -44,7 +44,7 @@ def elapsed(start_time, logger=None, log_level=logging.INFO):
             "Elapsed: %s hrs, %s min, %s sec.",
             (span.days * 24 + span.seconds // 3600),
             ((span.seconds // 60) % 60),
-            (span.seconds % 60)
+            (span.seconds % 60),
         )
     return span
 
