@@ -16,6 +16,9 @@ LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 
 
+##TODO: Rename dataset.py --> meta.py.
+
+
 class Dataset(object):
     """Representation of dataset information."""
 
