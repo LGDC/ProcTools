@@ -192,14 +192,33 @@ def flattened_path(path, flat_char="_"):
     return path
 
 
-def folder_file_paths(folder_path):
+def folder_file_paths(folder_path, top_level_only=False, **kwargs):
     """Generate paths for files in folder.
 
     Args:
         folder_path (str): Path for folder to list file paths within.
+        top_level_only (bool): Only yield paths for files at top-level if True; include
+            subfolders as well if False.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        file_extensions (iter): Collection of file extensions to filter files. Include
+            the period in the extension: `.ext`. Use empty string "" for files without
+            an extension.
 
     Yields:
-        str: Path of file.
+        str
+    """
+    if "file_extensions" in kwargs:
+        kwargs["file_extensions"] = {ext.lower() for ext in kwargs["file_extensions"]}
+    for i, (_folder_path, _, file_names) in enumerate(os.walk(folder_path)):
+        for file_name in file_names:
+            ext = os.path.splitext(file_name)[1].lower()
+            if "file_extensions" not in kwargs or ext in kwargs["file_extensions"]:
+                yield os.path.join(_folder_path, file_name)
+
+        if top_level_only and i == 0:
+            return
     """
     for file_name in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file_name)
