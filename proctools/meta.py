@@ -133,7 +133,7 @@ class Dataset(object):
         return self._path[tag]
 
 
-def last_change_date(
+def dataset_last_change_date(
     dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
 ):
     """Return date of the last change on dataset with tracking fields."""
