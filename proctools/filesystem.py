@@ -4,10 +4,13 @@ try:
 except ImportError:
     # Py2.
     from contextlib2 import ContextDecorator
+import filecmp
 import logging
 import os
 import subprocess
 import zipfile
+
+from more_itertools import pairwise
 
 
 __all__ = []
@@ -241,8 +244,73 @@ def folder_relative_file_paths(folder_path, top_level_only=False, **kwargs):
     file_paths = folder_file_paths(folder_path, top_level_only, **kwargs)
     for file_path in file_paths:
         yield os.path.relpath(file_path, folder_path)
+
+
+# Py2.
+def same_file(file_path, cmp_file_path, not_exists_ok=True):
+    """Determine if given files are the same.
+
+    Args:
+        file_path (str): Path to file.
+        cmp_file_path (str): Path to comparison file.
+        not_exists_ok (bool): True if a path for a nonexistent file will be treated as a
+            file and as "different" than any actual files.
+
+    Returns:
+        bool
     """
-    for file_name in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, file_name)
-        if os.path.isfile(file_path):
-            yield file_path
+    # Code similar to Py3 version below.
+    file_paths = [file_path, cmp_file_path]
+    for file_path in file_paths:
+        if not not_exists_ok:
+            if file_path is None or not os.path.exists(file_path):
+                raise OSError(
+                    "{} does not exist (not_exists_ok=False).".format(file_path)
+                )
+
+        if file_path is not None and not os.path.isfile(file_path):
+            raise OSError("{} not a file.".format(file_path))
+
+    if any(file_path is None for file_path in file_paths):
+        none_count = len([file_path for file_path in file_paths if file_path is None])
+        same = True if none_count == len(file_paths) else False
+    else:
+        same = all(
+            filecmp.cmp(file_path, cmp_file_path)
+            for file_path, cmp_file_path in pairwise(file_paths)
+        )
+    return same
+
+
+# Py3.
+# def same_file(*file_paths, not_exists_ok=True):
+#     """Determine if given files are the same.
+
+#     Args:
+#         *file_paths (iter of str): Collection of paths of files to compare.
+#         not_exists_ok (bool): True if a path for a nonexistent file will be treated as a
+#             file and as "different" than any actual files.
+
+#     Returns:
+#         bool
+#     """
+#     for file_path in file_paths:
+#         if not not_exists_ok:
+#             if file_path is None or not os.path.exists(file_path):
+#                 raise OSError(
+#                     "{} does not exist (not_exists_ok=False).".format(file_path)
+#                 )
+
+#         if file_path is not None and not os.path.isfile(file_path):
+#             raise OSError("{} not a file.".format(file_path))
+
+#     if any(file_path is None for file_path in file_paths):
+#         none_count = len([file_path for file_path in file_paths if file_path is None])
+#         same = True if none_count == len(file_paths) else False
+#     else:
+#         same = all(
+#             filecmp.cmp(file_path, cmp_file_path)
+#             for file_path, cmp_file_path in pairwise(file_paths)
+#         )
+#     return same
+    """

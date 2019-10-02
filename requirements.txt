@@ -1,6 +1,7 @@
 # For Python 2 compatibility.
 contextlib2
 dropbox
+more_itertools
 pysftp
 python-dateutil
 sqlalchemy
