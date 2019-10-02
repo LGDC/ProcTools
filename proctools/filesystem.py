@@ -142,7 +142,7 @@ def archive_folder(folder_path, archive_path, directory_as_base=False, **kwargs)
     return out_path
 
 
-def create_directory(directory_path, exist_ok=False, create_parents=False):
+def create_folder(folder_path, exist_ok=False, create_parents=False):
     """Create directory at given path.
 
     Args:
@@ -150,19 +150,19 @@ def create_directory(directory_path, exist_ok=False, create_parents=False):
         exist_ok (bool): Already-existing directories treated as successfully created
             if True, raises an exception if False.
         create_parents (bool): Function will create missing parent directories if True,
-            Will not (and raise an exception) if False.
+            will not (and raise an exception) if False.
 
     Returns:
         str: Path of the created directory.
     """
     try:
-        os.makedirs(directory_path) if create_parents else os.mkdir(directory_path)
+        os.makedirs(folder_path) if create_parents else os.mkdir(folder_path)
     except WindowsError as error:
         # [Error 183] Cannot create a file when that file already exists: {path}
         if not (exist_ok and error.winerror == 183):
             raise
 
-    return directory_path
+    return folder_path
 
 
 def extract_archive(archive_path, extract_path, password=None):
@@ -335,7 +335,7 @@ def update_file(file_path, source_path):
         if os.path.exists(file_path):
             os.chmod(file_path, stat.S_IWRITE)
         # Create directory structure (if necessary).
-        create_directory(os.path.dirname(file_path), exist_ok=True, create_parents=True)
+        create_folder(os.path.dirname(file_path), exist_ok=True, create_parents=True)
         try:
             shutil.copy2(source_path, file_path)
         except IOError:
@@ -393,7 +393,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
         else:
             file_path = os.path.join(folder_path, relative_path)
             # Add directory (if necessary).
-            create_directory(
+            create_folder(
                 os.path.dirname(file_path), exist_ok=True, create_parents=True
             )
         states[update_file(file_path, source_path)] += 1
