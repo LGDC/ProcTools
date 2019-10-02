@@ -5,6 +5,7 @@ Do not put anything here which imports from other ProcTools submodules!
 import datetime
 import logging
 import random
+import socket
 import types
 
 
@@ -12,6 +13,67 @@ __all__ = []
 
 LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
+
+
+def access_odbc_string(database_path):
+    """Return ODBC connection string to Microsoft Access database.
+
+    Args:
+        database_path (str): Path to Access database.
+
+    Returns
+        str
+    """
+    return "DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=" + database_path
+
+
+def sql_server_odbc_string(
+    host, database_name=None, username=None, password=None, **kwargs
+):
+    """Return ODBC connection string for SQL Server database.
+
+    Defaults to trusted connection. If username and password are defined, they
+    will override the trusted connection setting.
+    Depending on your ODBC setup, omitting a login and trusted will either
+    fail or prompt for credentials.
+
+    Args:
+        host (str): Name of the SQL Server instance host.
+        database_name (str, None): Name of the database (optional).
+        username (str): Username to connect with (optional).
+        password (str): Password to connect with (optional).
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        driver_string (str): ODBC string for driver & version. Default is "{ODBC Driver
+            17 for SQL Server}".
+        application (str): Name of application to represent connection as being from.
+        read_only (bool): True if application intent is for read-only workload. Default
+            is False.
+
+    Returns:
+        str
+
+    """
+    _string = "Driver={};Server={};".format(
+        kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}"), host
+    )
+    if database_name:
+        _string += "Database={};".format(database_name)
+    if username:
+        _string += "UID={};".format(username)
+        if password:
+            _string += "PWD={};".format(password)
+    else:
+        _string += "Trusted_Connection=yes;"
+    if kwargs.get("application"):
+        _string += "APP={};".format(kwargs["application"])
+    if kwargs.get("read_only", False):
+        _string += "ApplicationIntent=ReadOnly;"
+    else:
+        _string += "ApplicationIntent=ReadWrite;"
+    _string += "WSID={}".format(socket.getfqdn())
+    return _string
 
 
 def datestamp(fmt="%Y_%m_%d"):
@@ -47,6 +109,28 @@ def elapsed(start_time, logger=None, log_level=logging.INFO):
             (span.seconds % 60),
         )
     return span
+
+
+def log_entity_states(
+    entity_type, states, logger=None, fmt="{count} {entity_type} {state}."
+):
+    """Log the counts for entities in each state from provided counter.
+
+    Args:
+        entity_type (str): Label for the entity type whose states are counted.
+            Preferably plural, e.g. "datasets".
+        states (collections.Counter): State-counts.
+        logger (logging.Logger): Loger to handle emitted loglines.
+        fmt (str): Format-string for logline. Use keywords in default value (`state` &
+            `count` are the key & value of a single item in `states`).
+    """
+    if not logger:
+        logger = LOG
+    if sum(states.values()) == 0:
+        logger.info("No %s states to log.", entity_type)
+    else:
+        for state, count in sorted(states.items()):
+            logger.info(fmt.format(count=count, entity_type=entity_type, state=state))
 
 
 def parity(numbers):
