@@ -219,6 +219,28 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
 
         if top_level_only and i == 0:
             return
+
+
+def folder_relative_file_paths(folder_path, top_level_only=False, **kwargs):
+    """Generate paths for files in folder, relative to top-level.
+
+    Args:
+        folder_path (str): Path for folder to list file paths within.
+        top_level_only (bool): Only yield paths for files at top-level if True; include
+            subfolders as well if False.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        file_extensions (iter): Collection of file extensions to filter files. Include
+            the period in the extension: `.ext`. Use empty string "" for files without
+            an extension.
+
+    Yields:
+        str
+    """
+    file_paths = folder_file_paths(folder_path, top_level_only, **kwargs)
+    for file_path in file_paths:
+        yield os.path.relpath(file_path, folder_path)
     """
     for file_name in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file_name)
