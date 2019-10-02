@@ -3,3 +3,4 @@ contextlib2
 dropbox
 pysftp
 python-dateutil
+sqlalchemy

@@ -1,22 +1,98 @@
 """Dataset objects."""
 import itertools
-import logging
+import os
 import sys
 
+try:
+    from urllib.parse import quote_plus
+except ImportError:
+    # Py2.
+    from urllib import quote_plus
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 # import arcetl  # Imported locally to avoid slow imports.
+from .misc import sql_server_odbc_string
 
 # Py2.
 if sys.version_info.major >= 3:
-    basestring = str
+    basestring = str  # pylint: disable=invalid-name
 
 
 __all__ = []
 
-LOG = logging.getLogger(__name__)
-"""logging.Logger: Module-level logger."""
 
+class Database(object):
+    """Representation of database information.
 
-##TODO: Rename dataset.py --> meta.py.
+    Attributes:
+        name (str): Name of the database.
+        host (str): Name of the SQL Server instance host.
+        path (str): SDE-style path to database.
+        data_schema_names (set): Collection of data schema names.
+    """
+
+    def __init__(self, name, host, **kwargs):
+        """Initialize instance.
+
+        Args:
+            name (str): Name of the database.
+            host (str): Name of the SQL Server instance host.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            data_schema_names (iter of str): Collection of data schema names. Often used
+                to identify which owned schemas need compressing. Default is empty set.
+        """
+        self.name = name
+        self.host = host
+        self.data_schema_names = set(kwargs.get("data_schema_names", set()))
+        self._sqlalchemy = {}
+
+    def __repr__(self):
+        return "{}(name={!r}, host={!r})".format(
+            self.__class__.__name__, self.name, self.host
+        )
+
+    def create_session(self, username=None, password=None, **kwargs):
+        """Return SQLAlchemy session instance to database.
+
+        Returns:
+            sqlalchemy.orm.session.Session: Session object connected to the database.
+
+        Keyword Args:
+            See keyword args listed for `sql_server_odbc_string` function.
+        """
+        url = self._sqlalchemy.setdefault(
+            "url",
+            "mssql+pyodbc:///?odbc_connect={}".format(
+                quote_plus(self.get_odbc_string(username, password, **kwargs))
+            ),
+        )
+        engine = self._sqlalchemy.setdefault("engine", create_engine(url))
+        return self._sqlalchemy.setdefault(
+            "SessionFactory", sessionmaker(bind=engine)
+        )()
+
+    def get_odbc_string(self, username=None, password=None, **kwargs):
+        """Return String necessary for ODBC connection.
+
+        Args:
+            username (str): Name of user for credential (optional).
+            password (str): Password for credential (optional).
+            application (str): Name of application to represent connection as being from
+                (optional).
+
+        Keyword Args:
+            See keyword args listed for `sql_server_odbc_string` function.
+
+        Returns:
+            str
+        """
+        return sql_server_odbc_string(
+            self.host, self.name, username, password, **kwargs
+        )
 
 
 class Dataset(object):
