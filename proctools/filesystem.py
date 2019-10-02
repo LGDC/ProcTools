@@ -7,6 +7,8 @@ except ImportError:
 import filecmp
 import logging
 import os
+import shutil
+import stat
 import subprocess
 import zipfile
 
@@ -313,4 +315,34 @@ def same_file(file_path, cmp_file_path, not_exists_ok=True):
 #             for file_path, cmp_file_path in pairwise(file_paths)
 #         )
 #     return same
+
+
+def update_file(file_path, source_path):
+    """Update file from source.
+
+    Args:
+        file_path (str): Path to file to be updated.
+        source_path (str): Path to source file.
+
+    Returns:
+        str: Result key--"updated", "failed to update", or "no update necessary".
+    """
+    if same_file(file_path, source_path):
+        result_key = "no update necessary"
+    else:
+        # Make destination file overwriteable.
+        if os.path.exists(file_path):
+            os.chmod(file_path, stat.S_IWRITE)
+        # Create directory structure (if necessary).
+        create_directory(os.path.dirname(file_path), exist_ok=True, create_parents=True)
+        try:
+            shutil.copy2(source_path, file_path)
+        except IOError:
+            result_key = "failed to update"
+        else:
+            os.chmod(file_path, stat.S_IWRITE)
+            result_key = "updated"
+        level = (logging.INFO if result_key == "updated" else logging.WARNING,)
+        LOG.log(level, "%s %s at %s.", source_path, result_key, file_path)
+    return result_key
     """
