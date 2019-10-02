@@ -1,9 +1,12 @@
 """File system objects."""
+from collections import Counter
+
 try:
     from contextlib import ContextDecorator
 except ImportError:
     # Py2.
     from contextlib2 import ContextDecorator
+import datetime
 import filecmp
 import logging
 import os
@@ -13,6 +16,8 @@ import subprocess
 import zipfile
 
 from more_itertools import pairwise
+
+from .misc import elapsed, log_entity_states
 
 
 __all__ = []
@@ -345,4 +350,61 @@ def update_file(file_path, source_path):
         level = (logging.INFO if result_key == "updated" else logging.WARNING,)
         LOG.log(level, "%s %s at %s.", source_path, result_key, file_path)
     return result_key
+
+
+def update_replica_folder(folder_path, source_path, top_level_only=False, **kwargs):
+    """Update replica folder from source.
+
+    Args:
+        folder_path (str): Path to replica folder.
+        source_path (str): Path to source folder.
+        top_level_only (bool): Only update files at top-level of folder if True; include
+            subfolders as well if False.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        file_extensions (iter): Collection of file extensions to filter files. Include
+            the period in the extension: `.ext`. Use empty string "" for files without
+            an extension.
+        flatten_tree (bool): If True, replica repository will be updated with files
+            "flattened" into the root folder, regardless of where in the source
+            hierarchy they reside. Default is False.
+        logger (logging.Logger): Logger to emit loglines to. If not defined will default
+            to submodule logger.
+        log_evaluated_division (int): Division at which to emit a logline about number
+            of files evaluated so far. If not defined or None, will default to not
+            logging evaluated divisions.
+
+    Returns:
+        collections.Counter: Counts for each update result type: "updated", "failed to
+            update", or "no update necessary"
     """
+    start_time = datetime.datetime.now()
+    log = kwargs.get("logger", LOG)
+    log.info("Start: Update replica folder `%s` from `%s`.", folder_path, source_path)
+    for repo_path in (folder_path, source_path):
+        if not os.access(repo_path, os.R_OK):
+            raise OSError("Cannot access `{}`.".format(repo_path))
+
+    states = Counter()
+    relative_source_paths = folder_relative_file_paths(
+        source_path, top_level_only, file_extensions=kwargs["file_extensions"]
+    )
+    for i, relative_path in enumerate(relative_source_paths, start=1):
+        source_path = os.path.join(source_path, relative_path)
+        if kwargs.get("flatten_tree", False):
+            file_path = os.path.join(folder_path, os.path.basename(relative_path))
+        else:
+            file_path = os.path.join(folder_path, relative_path)
+            # Add directory (if necessary).
+            create_directory(
+                os.path.dirname(file_path), exist_ok=True, create_parents=True
+            )
+        states[update_file(file_path, source_path)] += 1
+        if "log_evaluated_division" in kwargs:
+            if i % kwargs["log_evaluated_division"] == 0:
+                log.info("Evaluated {:,} files.".format(i))
+    log_entity_states("files", states, log)
+    elapsed(start_time, log)
+    log.info("End: Update.")
+    return states
