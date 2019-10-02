@@ -20,12 +20,13 @@ def add_missing_fields(dataset, dataset_metadata, tags=None):
             field to be added. If tags is None, all fields listed in metadata are added.
     """
     import arcetl
+
     tags = set(tags)
     if not tags:
         fields_meta = dataset_metadata.fields
     else:
         fields_meta = (
-            field for field in dataset_metadata.fields if set(field.get('tags')) & tags
+            field for field in dataset_metadata.fields if set(field.get("tags")) & tags
         )
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
@@ -49,6 +50,7 @@ def clean_whitespace(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_function
@@ -71,6 +73,7 @@ def clean_whitespace_without_clear(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_function
@@ -93,6 +96,7 @@ def clear_all_values(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_value`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_value
@@ -115,6 +119,7 @@ def clear_non_numeric_text(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     def val_func(val):
         return val if value.is_numeric(val) else None
 
@@ -140,6 +145,7 @@ def clear_nonpositive(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     def val_func(val):
         try:
             result = val if float(val) > 0 else None
@@ -187,6 +193,7 @@ def etl_dataset(output_path, source_path=None, **kwargs):
         collections.Counter: Counts for each update type.
     """
     import arcetl
+
     with arcetl.ArcETL(kwargs.get("etl_name", os.path.basename(output_path))) as etl:
         # Init.
         if source_path:
@@ -236,6 +243,7 @@ def force_lowercase(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_function
@@ -258,6 +266,7 @@ def force_title_case(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_function
@@ -280,6 +289,7 @@ def force_uppercase(dataset, field_names, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.attributes.update_by_function
@@ -303,6 +313,7 @@ def force_yn(dataset, field_names, default=None, **kwargs):
         See keyword arguments for `arcetl.attributes.update_by_function`.
     """
     import arcetl
+
     val_func = partial(value.force_yn, default=default)
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
@@ -326,6 +337,7 @@ def insert_features_from_paths(dataset, insert_dataset_paths, **kwargs):
         See keyword arguments for `arcetl.features.insert_from_path`.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(
             dataset.transform, transformation=arcetl.features.insert_from_path
@@ -344,6 +356,7 @@ def rename_fields(dataset, field_name_change_map):
         field_name_change_map (dict): Mapping of old to new field name.
     """
     import arcetl
+
     if isinstance(dataset, arcetl.etl.ArcETL):
         func = partial(dataset.transform, transformation=arcetl.dataset.rename_field)
     else:
