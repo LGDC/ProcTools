@@ -81,11 +81,8 @@ class NetUse(ContextDecorator):
                 LOG.debug("Network resource %s already disconnected.", self.path)
 
 
-def archive_directory(directory_path, archive_path, directory_as_base=False, **kwargs):
+def archive_folder(folder_path, archive_path, directory_as_base=False, **kwargs):
     """Create zip archive of files in the given directory.
-
-    The exclude pattern will ignore any directory or file name that includes any
-        pattern listed.
 
     Args:
         directory_path (str): Path of directory to archive.
@@ -93,10 +90,9 @@ def archive_directory(directory_path, archive_path, directory_as_base=False, **k
         directory_as_base (bool): Place contents in the base directory within the
             archive if True, do not if False.
 
-
     Keyword Args:
-        archive_exclude_patterns (iter): Collection of file name patterns to exclude
-            from archive.
+        archive_exclude_patterns (iter): Collection of file/folder name patterns to
+            exclude from archive.
         encrypt_password (str): Password for an encrypted wrapper archive to place the
             directory archive inside. Default is None (no encryption/wrapper).
 
@@ -105,14 +101,14 @@ def archive_directory(directory_path, archive_path, directory_as_base=False, **k
     """
     kwargs.setdefault("archive_exclude_patterns", [])
     kwargs.setdefault("encrypt_password")
-    LOG.info("Start: Create archive of directory %s.", directory_path)
+    LOG.info("Start: Create archive of directory %s.", folder_path)
     if directory_as_base:
-        directory_root_length = len(os.path.dirname(directory_path)) + 1
+        directory_root_length = len(os.path.dirname(folder_path)) + 1
     else:
-        directory_root_length = len(directory_path) + 1
+        directory_root_length = len(folder_path) + 1
     archive = zipfile.ZipFile(archive_path, mode="w", compression=zipfile.ZIP_DEFLATED)
     with archive:
-        for subdirectory_path, _, file_names in os.walk(directory_path):
+        for subdirectory_path, _, file_names in os.walk(folder_path):
             if any(
                 pattern.lower() in os.path.basename(subdirectory_path).lower()
                 for pattern in kwargs["archive_exclude_patterns"]
