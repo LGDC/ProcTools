@@ -343,7 +343,7 @@ def update_file(file_path, source_path):
         else:
             os.chmod(file_path, stat.S_IWRITE)
             result_key = "updated"
-        level = (logging.INFO if result_key == "updated" else logging.WARNING,)
+        level = logging.INFO if result_key == "updated" else logging.WARNING
         LOG.log(level, "%s %s at %s.", source_path, result_key, file_path)
     return result_key
 
