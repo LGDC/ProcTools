@@ -265,18 +265,24 @@ def same_file(file_path, cmp_file_path, not_exists_ok=True):
     # Code similar to Py3 version below.
     file_paths = [file_path, cmp_file_path]
     for file_path in file_paths:
-        if not not_exists_ok:
-            if file_path is None or not os.path.exists(file_path):
-                raise OSError(
-                    "{} does not exist (not_exists_ok=False).".format(file_path)
-                )
+        if not_exists_ok and file_path is not None:
+            # Check for non-files (folders).
+            if os.path.exists(file_path) and not os.path.isfile(file_path):
+                raise OSError("`{}` is not a file.".format(file_path))
 
-        if file_path is not None and not os.path.isfile(file_path):
-            raise OSError("{} not a file.".format(file_path))
+        elif file_path is None or not os.path.exists(file_path):
+            raise OSError(
+                "`{}` does not exist (`not_exists_ok=False`).".format(file_path)
+            )
 
     if any(file_path is None for file_path in file_paths):
-        none_count = len([file_path for file_path in file_paths if file_path is None])
-        same = True if none_count == len(file_paths) else False
+        non_count = len([file_path for file_path in file_paths if file_path is None])
+        same = non_count == len(file_paths)
+    elif any(not os.path.exists(file_path) for file_path in file_paths):
+        non_count = len(
+            [file_path for file_path in file_paths if not os.path.exists(file_path)]
+        )
+        same = non_count == len(file_paths)
     else:
         same = all(
             filecmp.cmp(file_path, cmp_file_path)
@@ -298,18 +304,24 @@ def same_file(file_path, cmp_file_path, not_exists_ok=True):
 #         bool
 #     """
 #     for file_path in file_paths:
-#         if not not_exists_ok:
-#             if file_path is None or not os.path.exists(file_path):
+#         if not_exists_ok and file_path is not None:
+#             # Check for non-files (folders).
+#             if os.path.exists(file_path) and not os.path.isfile(file_path):
+#                 raise OSError("`{}` is not a file.".format(file_path))
+
+#         elif file_path is None or not os.path.exists(file_path):
 #                 raise OSError(
-#                     "{} does not exist (not_exists_ok=False).".format(file_path)
+#                     "`{}`` does not exist (`not_exists_ok=False`).".format(file_path)
 #                 )
 
-#         if file_path is not None and not os.path.isfile(file_path):
-#             raise OSError("{} not a file.".format(file_path))
-
 #     if any(file_path is None for file_path in file_paths):
-#         none_count = len([file_path for file_path in file_paths if file_path is None])
-#         same = True if none_count == len(file_paths) else False
+#         non_count = len([file_path for file_path in file_paths if file_path is None])
+#         same = non_count == len(file_paths)
+#     elif any(not os.path.exists(file_path) for file_path in file_paths):
+#         non_count = len(
+#             [file_path for file_path in file_paths if not os.path.exists(file_path)]
+#         )
+#         same = non_count == len(file_paths)
 #     else:
 #         same = all(
 #             filecmp.cmp(file_path, cmp_file_path)
