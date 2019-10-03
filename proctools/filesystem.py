@@ -387,7 +387,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
         source_path, top_level_only, file_extensions=kwargs["file_extensions"]
     )
     for i, relative_path in enumerate(relative_source_paths, start=1):
-        source_path = os.path.join(source_path, relative_path)
+        source_file_path = os.path.join(source_path, relative_path)
         if kwargs.get("flatten_tree", False):
             file_path = os.path.join(folder_path, os.path.basename(relative_path))
         else:
@@ -396,7 +396,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
             create_folder(
                 os.path.dirname(file_path), exist_ok=True, create_parents=True
             )
-        states[update_file(file_path, source_path)] += 1
+        states[update_file(file_path, source_file_path)] += 1
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
                 log.info("Evaluated {:,} files.".format(i))
