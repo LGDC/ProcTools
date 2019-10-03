@@ -328,6 +328,9 @@ def update_file(file_path, source_path):
     Returns:
         str: Result key--"updated", "failed to update", or "no update necessary".
     """
+    if not os.path.isfile(file_path):
+        raise OSError("`{}` is not a file.".format(file_path))
+
     if same_file(file_path, source_path):
         result_key = "no update necessary"
     else:
