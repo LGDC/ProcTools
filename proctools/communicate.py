@@ -142,7 +142,7 @@ def send_links_email(
         ordered (bool): True if link list is ordered, False otherwise. Default is False.
         body_pre_links (str): Message body text to place before the links list.
         body_post_links (str): Message body text to place after the links list.
-        See additional kwargs for send_email().
+        See additional kwargs for `proctools.communicate.send_email_smtp`.
     """
     list_item_template = """<li><a href="{0}">{0}</a></li>"""
     list_items = [list_item_template.format(url) for url in urls]
