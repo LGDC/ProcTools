@@ -27,55 +27,6 @@ def access_odbc_string(database_path):
     return "DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=" + database_path
 
 
-def sql_server_odbc_string(
-    host, database_name=None, username=None, password=None, **kwargs
-):
-    """Return ODBC connection string for SQL Server database.
-
-    Defaults to trusted connection. If username and password are defined, they
-    will override the trusted connection setting.
-    Depending on your ODBC setup, omitting a login and trusted will either
-    fail or prompt for credentials.
-
-    Args:
-        host (str): Name of the SQL Server instance host.
-        database_name (str, None): Name of the database (optional).
-        username (str): Username to connect with (optional).
-        password (str): Password to connect with (optional).
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        driver_string (str): ODBC string for driver & version. Default is "{ODBC Driver
-            17 for SQL Server}".
-        application (str): Name of application to represent connection as being from.
-        read_only (bool): True if application intent is for read-only workload. Default
-            is False.
-
-    Returns:
-        str
-
-    """
-    _string = "Driver={};Server={};".format(
-        kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}"), host
-    )
-    if database_name:
-        _string += "Database={};".format(database_name)
-    if username:
-        _string += "UID={};".format(username)
-        if password:
-            _string += "PWD={};".format(password)
-    else:
-        _string += "Trusted_Connection=yes;"
-    if kwargs.get("application"):
-        _string += "APP={};".format(kwargs["application"])
-    if kwargs.get("read_only", False):
-        _string += "ApplicationIntent=ReadOnly;"
-    else:
-        _string += "ApplicationIntent=ReadWrite;"
-    _string += "WSID={}".format(socket.getfqdn())
-    return _string
-
-
 def datestamp(fmt="%Y_%m_%d"):
     """Return string with current datestamp.
 
@@ -167,6 +118,55 @@ def randomized(iterable):
         iterable = set(iterable)
     for item in random.sample(population=iterable, k=len(iterable)):
         yield item
+
+
+def sql_server_odbc_string(
+    host, database_name=None, username=None, password=None, **kwargs
+):
+    """Return ODBC connection string for SQL Server database.
+
+    Defaults to trusted connection. If username and password are defined, they
+    will override the trusted connection setting.
+    Depending on your ODBC setup, omitting a login and trusted will either
+    fail or prompt for credentials.
+
+    Args:
+        host (str): Name of the SQL Server instance host.
+        database_name (str, None): Name of the database (optional).
+        username (str): Username to connect with (optional).
+        password (str): Password to connect with (optional).
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        driver_string (str): ODBC string for driver & version. Default is "{ODBC Driver
+            17 for SQL Server}".
+        application (str): Name of application to represent connection as being from.
+        read_only (bool): True if application intent is for read-only workload. Default
+            is False.
+
+    Returns:
+        str
+
+    """
+    _string = "Driver={};Server={};".format(
+        kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}"), host
+    )
+    if database_name:
+        _string += "Database={};".format(database_name)
+    if username:
+        _string += "UID={};".format(username)
+        if password:
+            _string += "PWD={};".format(password)
+    else:
+        _string += "Trusted_Connection=yes;"
+    if kwargs.get("application"):
+        _string += "APP={};".format(kwargs["application"])
+    if kwargs.get("read_only", False):
+        _string += "ApplicationIntent=ReadOnly;"
+    else:
+        _string += "ApplicationIntent=ReadWrite;"
+    _string += "WSID={}".format(socket.getfqdn())
+    return _string
 
 
 def timestamp(fmt="%Y_%m_%d_T%H%M"):
