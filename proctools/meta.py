@@ -1,6 +1,5 @@
-"""Dataset objects."""
-import itertools
-import os
+"""Metadata objects."""
+from itertools import chain
 import sys
 
 try:
@@ -217,7 +216,7 @@ def dataset_last_change_date(
 
     field_names = [init_date_field_name, mod_date_field_name]
     date_iters = arcetl.attributes.as_iters(dataset_path, field_names)
-    dates = set(itertools.chain.from_iterable(date_iters))
+    dates = set(chain.from_iterable(date_iters))
     # datetimes cannot compare to NoneTypes.
     if None in dates:
         dates.remove(None)
