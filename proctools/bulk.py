@@ -149,7 +149,7 @@ def clear_nonpositive(dataset, field_names, **kwargs):
     def val_func(val):
         try:
             result = val if float(val) > 0 else None
-        except [ValueError, TypeError]:
+        except (ValueError, TypeError):
             result = None
         return result
 
