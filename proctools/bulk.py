@@ -21,7 +21,7 @@ def add_missing_fields(dataset, dataset_metadata, tags=None):
     """
     import arcetl
 
-    tags = set(tags)
+    tags = set(tags) if tags else set()
     if not tags:
         fields_meta = dataset_metadata.fields
     else:
