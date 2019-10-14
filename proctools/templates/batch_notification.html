@@ -1,0 +1,22 @@
+{# Jinja template for batch last-run status notification emails. #}
+<!DOCTYPE html>
+<html lang="en">
+    <body>
+        <table style="width:100%">
+            <tr>
+                <th align="left">Batch</th>
+                <th align="left">Status</th>
+                <th align="left">Start Time</th>
+                <th>End Time</th>
+            </tr>
+            {% for run in last_run_metas %}
+                <tr>
+                    <td>{{ run["job_name"] }}</td>
+                    <td>{{ run["run_status_description"] }}</td>
+                    <td>{{ run["start_time"].strftime("%Y-%m-%d %H:%M") if run["start_time"] else "n/a" }}</td>
+                    <td>{{ run["end_time"].strftime("%Y-%m-%d %H:%M") if run["end_time"] else "n/a" }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </body>
+</html>

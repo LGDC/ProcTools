@@ -2,6 +2,7 @@
 import datetime
 from itertools import chain
 import logging
+from operator import itemgetter
 import os
 import sqlite3
 import sys
@@ -12,10 +13,12 @@ except ImportError:
     # Py2.
     from urllib import quote_plus
 
+from jinja2 import Environment, PackageLoader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # import arcetl  # Imported locally to avoid slow imports.
+from .communicate import extract_email_addresses, send_email_smtp
 from .misc import sql_server_odbc_string
 
 # Py2.
@@ -36,6 +39,126 @@ RUN_RESULTS_DB_PATH = os.path.join(LOGS_PATH, "Run_Results.sqlite3")
 """str: Path for execution run-result database."""
 RUN_STATUS_DESCRIPTION = {1: "complete", 0: "failed", -1: "incomplete"}
 """dict: Mapping of status code to description."""
+
+
+class Batch(object):
+    """Representation of a batch of processing jobs.
+
+    A batch is a group of jobs, generally related by their shared scheduling.
+
+    Attributes:
+        name (str): Name of the batch.
+    """
+
+    def __init__(self, name):
+        """Initialize instance.
+
+        Args:
+            name (str): Name of the batch.
+        """
+        self.name = name
+        self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
+
+    @property
+    def id(self):  # pylint: disable=invalid-name
+        """int: ID for batch, as found in Batch table."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select id from Batch where name = ?;"
+            cursor.execute(sql, [self.name])
+            return cursor.fetchone()[0]
+
+    @property
+    def job_names(self):
+        """list of str: Names of the jobs assigned to batch."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select name from Job where batch_id = ?;"
+            cursor.execute(sql, [self.id])
+            return [name for name, in cursor.fetchall()]
+
+    @property
+    def last_job_run_metas(self):
+        """list of dict: Metadata dictionaries for last job-runs."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select * from Last_Job_Run where batch_id = ?;"
+            cursor.execute(sql, [self.id])
+            metas = [
+                {column[0]: value for column, value in zip(cursor.description, row)}
+                for row in cursor
+            ]
+            # Coerce timestamps to datetime--no sqlite3 date/time types, using text.
+            for run_meta in metas:
+                for key in ["start_time", "end_time"]:
+                    run_meta[key] = datetime.datetime.strptime(
+                        run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
+                    )
+            return metas
+
+    @property
+    def notification_addresses(self):
+        """dict: Mapping of type to list of email addresses for notification."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = """
+                select
+                    notification_to_addresses as 'to_addresses',
+                    notification_copy_addresses as 'copy_addresses',
+                    notification_blind_copy_addresses as 'blind_copy_addresses',
+                    notification_reply_to_addresses as 'reply_to_addresses'
+                from Batch where name = ?
+                limit 1;
+            """
+            row = cursor.execute(sql, [self.name]).fetchone()
+            if not row:
+                raise ValueError("Batch name not valid member of Batch table.")
+
+            addresses = {
+                column[0]: list(extract_email_addresses(value))
+                for column, value in zip(cursor.description, row)
+            }
+            return addresses
+
+    def send_notification(self, host, from_address, **kwargs):
+        """Send email notification for batch.
+
+        Args:
+            host (str, None): Host name of SMTP server.
+            from_address (str): Email address for sender.
+            body (str): Message body text.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Kwargs:
+            See keyword arguments for `proctools.communicate.send_email_smtp`.
+        """
+        if any(
+            addresses
+            for key, addresses in self.notification_addresses.items()
+            if key in ["to_addresses", "copy_addresses", "blind_copy_addresses"]
+        ):
+            env = Environment(loader=PackageLoader("proctools", "templates"))
+            template = env.get_template("batch_notification.html")
+            last_run_metas = sorted(
+                self.last_job_run_metas,
+                key=itemgetter("start_time", "end_time"),
+                reverse=True,
+            )
+            batch_status = (
+                1 if all(run["status"] == 1 for run in last_run_metas) else -1
+            )
+            kwargs.update(self.notification_addresses)
+            send_email_smtp(
+                host,
+                from_address,
+                subject="Processing Batch: {} ({})".format(
+                    self.name, RUN_STATUS_DESCRIPTION[batch_status]
+                ),
+                body=template.render(last_run_metas=last_run_metas),
+                body_type="html",
+                **kwargs
+            )
+
 
 class Database(object):
     """Representation of database information.
