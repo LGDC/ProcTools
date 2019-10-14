@@ -1,11 +1,13 @@
 """Metadata objects."""
 import datetime
+from functools import partial
 from itertools import chain
 import logging
 from operator import itemgetter
 import os
 import sqlite3
 import sys
+from types import FunctionType
 
 try:
     from urllib.parse import quote_plus
@@ -19,6 +21,7 @@ from sqlalchemy.orm import sessionmaker
 
 # import arcetl  # Imported locally to avoid slow imports.
 from .communicate import extract_email_addresses, send_email_smtp
+from .filesystem import create_folder
 from .misc import sql_server_odbc_string
 
 # Py2.
@@ -436,6 +439,82 @@ class Job(object):
             self._procedures = []
         else:
             self._procedures = list(value)
+
+
+class Pipeline(object):
+    """Representation of an processing pipeline.
+
+    Attributes:
+        members (tuple): Ordered collection of pipeline execution members.
+    """
+
+    @staticmethod
+    def init_logger(member_name, file_mode="a", file_level=None):
+        """Initialize logger."""
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        # Need to remove old handlers, to avoid duplicating handlers between procedures.
+        for handler in logger.handlers:
+            logger.removeHandler(handler)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+        create_folder(LOGS_PATH, exist_ok=True, create_parents=True)
+        file_handler = logging.FileHandler(
+            filename=os.path.join(LOGS_PATH, member_name + ".log"), mode=file_mode
+        )
+        file_handler.setLevel(file_level if file_level else logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        return logger
+
+    def __init__(self, *members):
+        """Initialize instance.
+
+        Args:
+            *members: Ordered collection of pipeline execution members.
+        """
+        self.members = members
+
+    def execute(self):
+        """Execute pipeline members."""
+        for member in self.members:
+            if isinstance(member, Job):
+                meta = {
+                    "name": member.name,
+                    "type": "job",
+                    "procedures": member.procedures,
+                }
+                member.run_status = -1
+            # Functions are assumed to be non-job standalone pipeline members.
+            elif isinstance(member, (FunctionType, partial)):
+                meta = {
+                    "name": getattr(member, "__name__", "Unnamed Procedure"),
+                    "type": "procedure",
+                    "procedures": [member],
+                }
+            else:
+                raise ValueError("Invalid pipeline member type.")
+
+            log = self.init_logger(meta["name"], file_mode="w", file_level=10)
+            log.info("Starting %s: %s.", meta["type"], meta["name"])
+            for procedure in meta["procedures"]:
+                try:
+                    procedure()
+                except:
+                    log.exception("Unhandled exception.")
+                    raise
+
+            meta["status"] = 1
+            if meta["type"] == "job":
+                member.run_status = meta["status"]
+            log.info("%s %s.", meta["name"], RUN_STATUS_DESCRIPTION[meta["status"]])
+
+
 def dataset_last_change_date(
     dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
 ):
