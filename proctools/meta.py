@@ -1,5 +1,9 @@
 """Metadata objects."""
+import datetime
 from itertools import chain
+import logging
+import os
+import sqlite3
 import sys
 
 try:
@@ -21,6 +25,17 @@ if sys.version_info.major >= 3:
 
 __all__ = []
 
+LOG = logging.getLogger(__name__)
+"""logging.Logger: Module-level logger."""
+
+PROC_PATH = os.getenv("PROC_PATH", os.path.join(os.getenv("LOCALAPPDATA"), "proc"))
+"""str: Path to folder for processing environment."""
+LOGS_PATH = os.path.join(PROC_PATH, "logs")
+"""str: Path to folder for logging content."""
+RUN_RESULTS_DB_PATH = os.path.join(LOGS_PATH, "Run_Results.sqlite3")
+"""str: Path for execution run-result database."""
+RUN_STATUS_DESCRIPTION = {1: "complete", 0: "failed", -1: "incomplete"}
+"""dict: Mapping of status code to description."""
 
 class Database(object):
     """Representation of database information.
@@ -208,6 +223,96 @@ class Dataset(object):
         return self._path[tag]
 
 
+class Job(object):
+    """Representation of pipeline processing job.
+
+    A job is an named &ordered sequence of processes to execute in a pipeline.
+
+    Attributes:
+        name (str): Name of the job.
+        run_id (int): ID value from Job_Run table in exec-results database. If
+            job run has not yet been initiated, value is None.
+    """
+
+    def __init__(self, name, procedures=None):
+        """Initialize instance.
+
+        Args:
+            name (str): Name of the job.
+            procedures (iter, None): Collection of procedures to attach to job. If None,
+                `self.procedures` will init as empty list.
+        """
+        self.name = name
+        self._procedures = []
+        self.procedures = procedures
+        self.run_id = None
+        self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
+        LOG.info("Initialized job instance for `%s`.", self.name)
+
+    @property
+    def id(self):  # pylint: disable=invalid-name
+        """int: ID for job, as found in Job table."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select id from Job where name = ?;"
+            cursor.execute(sql, [self.name])
+            return cursor.fetchone()[0]
+
+    @property
+    def run_status(self):
+        """int: Run status for job-run, as found in Job_Run table.
+
+        See RUN_STATUS_DESCRIPTION for valid status codes.
+        """
+        if self.run_id is None:
+            return None
+
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select status from Job_Run where id = ?;"
+            cursor.execute(sql, [self.run_id])
+            return cursor.fetchone()[0]
+
+    @run_status.setter
+    def run_status(self, value):
+        if value not in RUN_STATUS_DESCRIPTION:
+            raise ValueError("{} not a valid status code.".format(value))
+
+        if self.run_id is None:
+            start_time = datetime.datetime.now().isoformat(" ")
+            with self._conn:
+                sql = """
+                    insert into Job_Run(status, job_id, start_time) values (?, ?, ?);
+                """
+                self._conn.execute(sql, [value, self.id, start_time])
+            with self._conn:
+                cursor = self._conn.cursor()
+                sql = "select id from Job_Run where job_id = ? and start_time = ?;"
+                cursor.execute(sql, [self.id, start_time])
+                self.run_id = cursor.fetchone()[0]
+        elif value in [-1]:
+            with self._conn:
+                sql = "update Job_Run set status = ? where run_id = ?;"
+                self._conn.execute(sql, [value, self.run_id])
+        else:
+            end_time = datetime.datetime.now().isoformat(" ")
+            with self._conn:
+                sql = """
+                    update Job_Run set status = ?, end_time = ? where id = ?;
+                """
+                self._conn.execute(sql, [value, end_time, self.run_id])
+
+    @property
+    def procedures(self):
+        """list: Ordered collection of procedures attached to job."""
+        return self._procedures
+
+    @procedures.setter
+    def procedures(self, value):
+        if value is None:
+            self._procedures = []
+        else:
+            self._procedures = list(value)
 def dataset_last_change_date(
     dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
 ):
