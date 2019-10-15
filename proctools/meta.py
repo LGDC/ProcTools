@@ -357,6 +357,7 @@ class Job(object):
 
     Attributes:
         name (str): Name of the job.
+        procedures (list): Ordered collection of procedures attached to job.
         run_id (int): ID value from Job_Run table in exec-results database. If
             job run has not yet been initiated, value is None.
     """
@@ -370,8 +371,7 @@ class Job(object):
                 `self.procedures` will init as empty list.
         """
         self.name = name
-        self._procedures = []
-        self.procedures = procedures
+        self.procedures = list(procedures) if procedures else []
         self.run_id = None
         self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
         LOG.info("Initialized job instance for `%s`.", self.name)
@@ -424,18 +424,6 @@ class Job(object):
                     update Job_Run set status = ?, end_time = ? where id = ?;
                 """
                 self._conn.execute(sql, [value, end_time, self.run_id])
-
-    @property
-    def procedures(self):
-        """list: Ordered collection of procedures attached to job."""
-        return self._procedures
-
-    @procedures.setter
-    def procedures(self, value):
-        if value is None:
-            self._procedures = []
-        else:
-            self._procedures = list(value)
 
 
 class Pipeline(object):
