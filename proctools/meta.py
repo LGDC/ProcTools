@@ -417,12 +417,8 @@ class Job(object):
                 sql = "select id from Job_Run where job_id = ? and start_time = ?;"
                 cursor.execute(sql, [self.id, start_time])
                 self.run_id = cursor.fetchone()[0]
-        elif value in [-1]:
-            with self._conn:
-                sql = "update Job_Run set status = ? where run_id = ?;"
-                self._conn.execute(sql, [value, self.run_id])
         else:
-            end_time = datetime.datetime.now().isoformat(" ")
+            end_time = None if value == -1 else datetime.datetime.now().isoformat(" ")
             with self._conn:
                 sql = """
                     update Job_Run set status = ?, end_time = ? where id = ?;
