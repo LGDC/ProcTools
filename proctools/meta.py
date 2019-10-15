@@ -94,9 +94,10 @@ class Batch(object):
             # Coerce timestamps to datetime--no sqlite3 date/time types, using text.
             for run_meta in metas:
                 for key in ["start_time", "end_time"]:
-                    run_meta[key] = datetime.datetime.strptime(
-                        run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
-                    )
+                    if run_meta[key] is not None:
+                        run_meta[key] = datetime.datetime.strptime(
+                            run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
+                        )
             return metas
 
     @property
