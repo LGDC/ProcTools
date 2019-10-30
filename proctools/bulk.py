@@ -29,13 +29,11 @@ def add_missing_fields(dataset, dataset_metadata, tags=None):
             field for field in dataset_metadata.fields if set(field.get("tags")) & tags
         )
     if isinstance(dataset, arcetl.etl.ArcETL):
-        func = partial(
-            dataset.transform, transformation=arcetl.dataset.add_field_from_metadata
-        )
+        func = partial(dataset.transform, transformation=arcetl.dataset.add_field)
     else:
-        func = partial(arcetl.dataset.add_field_from_metadata, dataset_path=dataset)
+        func = partial(arcetl.dataset.add_field, dataset_path=dataset)
     for meta in fields_meta:
-        func(add_metadata=meta, exist_ok=True)
+        func(exist_ok=True, **meta)
 
 
 def clean_whitespace(dataset, field_names, **kwargs):
