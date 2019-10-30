@@ -65,7 +65,7 @@ def send_email_smtp(
         **kwargs: Arbitrary keyword arguments. See below.
 
     Kwargs:
-        port (int): Port to connect to SMTP host on. Default is 25.
+        port (int, str): Port to connect to SMTP host on. Default is 25.
         password (str, None): Password for authentication with host. Default is None.
         copy_addresses (list, str): Email addresses for message copy-recipients (cc).
         blind_copy_addresses (list, str): Email addresses for message blind copy-
@@ -106,7 +106,7 @@ def send_email_smtp(
             "Content-Disposition", "attachment", filename=os.path.basename(attachment)
         )
         message.attach(part)
-    connection = smtplib.SMTP(host=host, port=kwargs.get("port", 25))
+    connection = smtplib.SMTP(host=host, port=int(kwargs.get("port", 25)))
     connection.starttls()
     # Only bother to log in if password provided (some SMTP hosts authenticate by IP).
     if kwargs.get("password"):
