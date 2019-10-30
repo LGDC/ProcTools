@@ -122,7 +122,8 @@ def send_email_smtp(
             to_addrs=addresses["all_to"],
             msg=message.as_string(),
         )
-    connection.quit()
+    finally:
+        connection.quit()
 
 
 def send_links_email(
