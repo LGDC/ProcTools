@@ -6,3 +6,7 @@ more_itertools
 pysftp
 python-dateutil
 sqlalchemy
+
+# For dev.
+pre-commit
+pylint
