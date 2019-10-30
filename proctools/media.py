@@ -55,7 +55,9 @@ def convert_image_to_pdf(image_path, output_path, error_on_failure=False):
         raise ValueError("Image must have image file extension.")
 
     subprocess.check_call(
-        "{} -i {} -o {} -g overwrite".format(IMAGE2PDF_PATH, image_path, output_path)
+        """{} -i "{}" -o "{}" -g overwrite""".format(
+            IMAGE2PDF_PATH, image_path, output_path
+        )
     )
     # Image2PDF returns before the underlying library's process completes. So we will
     # need to wait until the PDF shows up in the file system.
