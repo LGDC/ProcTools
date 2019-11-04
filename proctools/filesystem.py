@@ -297,8 +297,8 @@ def same_file(file_path, cmp_file_path, not_exists_ok=True):
 
 #     Args:
 #         *file_paths (iter of str): Collection of paths of files to compare.
-#         not_exists_ok (bool): True if a path for a nonexistent file will be treated as a
-#             file and as "different" than any actual files.
+#         not_exists_ok (bool): True if a path for a nonexistent file will be treated as
+#             a file and as "different" than any actual files.
 
 #     Returns:
 #         bool
@@ -415,7 +415,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
                 log.info("Evaluated {:,} files.".format(i))
-    log_entity_states("files", states, log)
+    log_entity_states("files", states, log, log_level=logging.DEBUG)
     elapsed(start_time, log)
     log.info("End: Update.")
     return states

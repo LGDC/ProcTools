@@ -119,7 +119,7 @@ def convert_folder_images_to_pdf(
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
                 log.info("Evaluated {:,} images.".format(i))
-    log_entity_states("images", states, log)
+    log_entity_states("images", states, log, log_level=logging.DEBUG)
     elapsed(start_time, log)
     log.info("End: Update.")
     return states
