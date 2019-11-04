@@ -415,7 +415,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
                 log.info("Evaluated {:,} files.".format(i))
-    log_entity_states("files", states, log, log_level=logging.DEBUG)
+    log_entity_states("files", states, log, log_level=logging.INFO)
     elapsed(start_time, log)
     log.info("End: Update.")
     return states
