@@ -95,9 +95,14 @@ class Batch(object):
             for run_meta in metas:
                 for key in ["start_time", "end_time"]:
                     if run_meta[key] is not None:
-                        run_meta[key] = datetime.datetime.strptime(
-                            run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
-                        )
+                        try:
+                            run_meta[key] = datetime.datetime.strptime(
+                                run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
+                            )
+                        except ValueError:
+                            run_meta[key] = datetime.datetime.strptime(
+                                run_meta[key], "%Y-%m-%d %H:%M:%S"
+                            )
             return metas
 
     @property
@@ -490,7 +495,7 @@ class Pipeline(object):
             for procedure in meta["procedures"]:
                 try:
                     procedure()
-                except:
+                except Exception:
                     log.exception("Unhandled exception.")
                     raise
 
