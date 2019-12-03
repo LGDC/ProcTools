@@ -62,6 +62,39 @@ def elapsed(start_time, logger=None, log_level=logging.INFO):
     return span
 
 
+def last_date(day_name, **kwargs):
+    """Return the last date that the given day occurred on.
+
+    Args:
+        day_name (str): Name of the day to find the last date for.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        reference_date (datetime.date, datetime.datetime): Date of reference to work
+            back to the given day from. Default is current date.
+
+    Returns:
+        datetime.date
+    """
+    reference_date = kwargs.get("reference_date", datetime.date.today())
+    days_of_week = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+    ]
+    delta_day = days_of_week.index(day_name.lower()) - reference_date.isoweekday()
+    if delta_day >= 0:
+        delta_day -= 7
+    day_date = reference_date + datetime.timedelta(days=delta_day)
+    if isinstance(day_date, datetime.datetime):
+        day_date = day_date.date()
+    return day_date
+
+
 def log_entity_states(entity_type, states, logger=None, **kwargs):
     """Log the counts for entities in each state from provided counter.
 
