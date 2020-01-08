@@ -16,6 +16,20 @@ LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 
 
+def any_in_range(numbers, floor, ceiling):
+    """Return True if any of the integers are in given range.
+
+    Args:
+        numbers (iter): Integers to evaluate.
+        floor (int): Lowest integer in range.
+        ceiling (int): Highest integer in range.
+
+    Returns:
+        bool
+    """
+    return any(number in range(floor, ceiling + 1) for number in numbers)
+
+
 def clean_whitespace(value, clear_empty_string=True):
     """Return value with whitespace stripped & deduplicated.
 
