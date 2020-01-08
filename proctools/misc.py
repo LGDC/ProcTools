@@ -24,7 +24,11 @@ def access_odbc_string(database_path):
     Returns
         str
     """
-    return "DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=" + database_path
+    details = {
+        "database": database_path,
+        "driver": "Microsoft Access Driver (*.mdb, *.accdb)",
+    }
+    return "DRIVER={{{driver}}};DBQ={database}".format(**details)
 
 
 def datestamp(fmt="%Y_%m_%d"):
