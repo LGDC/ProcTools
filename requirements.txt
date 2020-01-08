@@ -2,7 +2,7 @@
 contextlib2
 dropbox
 jinja2
-more_itertools
+more-itertools
 pysftp
 python-dateutil
 sqlalchemy
