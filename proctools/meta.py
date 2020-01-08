@@ -457,7 +457,7 @@ class Pipeline(object):
         file_handler = logging.FileHandler(
             filename=os.path.join(LOGS_PATH, member_name + ".log"), mode=file_mode
         )
-        file_handler.setLevel(file_level if file_level else logging.DEBUG)
+        file_handler.setLevel(file_level if file_level else logging.INFO)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         return logger
