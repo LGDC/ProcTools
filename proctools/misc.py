@@ -128,27 +128,6 @@ def log_entity_states(entity_type, states, logger=None, **kwargs):
             logger.log(level, line)
 
 
-def parity(numbers):
-    """Return proper parity description for a collection of numbers.
-
-    Parity description can be: "even", "odd", or "mixed".
-
-    Args:
-        numbers (iter): Collection of numbers.
-
-    Returns:
-        str
-    """
-    numbers_bitwise = {n & 1 for n in numbers}
-    if not numbers_bitwise:
-        _parity = None
-    elif len(numbers_bitwise) == 1:
-        _parity = {0: "even", 1: "odd"}[numbers_bitwise.pop()]
-    else:
-        _parity = "mixed"
-    return _parity
-
-
 def randomized(iterable):
     """Generate sequence of items in random order.
 

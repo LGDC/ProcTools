@@ -180,6 +180,27 @@ def is_numeric(value, nonetype_ok=True):
     return result
 
 
+def parity(*numbers):
+    """Return proper parity description for a collection of integers.
+
+    Parity description can be: "even", "odd", or "mixed".
+
+    Args:
+        *numbers: Collection of numbers.
+
+    Returns:
+        str
+    """
+    numbers_bitwise = {n & 1 for n in numbers}
+    if not numbers_bitwise:
+        result = None
+    elif len(numbers_bitwise) == 1:
+        result = {0: "even", 1: "odd"}[numbers_bitwise.pop()]
+    else:
+        result = "mixed"
+    return result
+
+
 def remove_diacritics(value):
     """Return string with diacritics removed.
 
