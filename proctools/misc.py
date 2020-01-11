@@ -161,6 +161,7 @@ def sql_server_odbc_string(
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
+        port (int): Non-default port to connect on.
         driver_string (str): ODBC string for driver & version. Default is "{ODBC Driver
             17 for SQL Server}".
         application (str): Name of application to represent connection as being from.
@@ -171,9 +172,13 @@ def sql_server_odbc_string(
         str
 
     """
-    _string = "Driver={};Server={};".format(
-        kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}"), host
+    _string = "Driver={};".format(
+        kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}")
     )
+    if kwargs.get("port"):
+        _string += "Server={},{};".format(host, kwargs["port"])
+    else:
+        _string += "Server={};".format(host)
     if database_name:
         _string += "Database={};".format(database_name)
     if username:
@@ -188,7 +193,7 @@ def sql_server_odbc_string(
         _string += "ApplicationIntent=ReadOnly;"
     else:
         _string += "ApplicationIntent=ReadWrite;"
-    _string += "WSID={}".format(socket.getfqdn())
+    _string += "WSID={};".format(socket.getfqdn())
     return _string
 
 

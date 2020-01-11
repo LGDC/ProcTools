@@ -188,12 +188,14 @@ class Database(object):
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
+            port (int): Non-default port to connect on.
             data_schema_names (iter of str): Collection of data schema names. Often used
                 to identify which owned schemas need compressing. Default is empty set.
         """
         self.name = name
         self.host = host
         self.data_schema_names = set(kwargs.get("data_schema_names", set()))
+        self.port = kwargs.get("port")
         self._sqlalchemy = {}
 
     def __repr__(self):
@@ -210,11 +212,11 @@ class Database(object):
         Keyword Args:
             See keyword args listed for `sql_server_odbc_string` function.
         """
+        kwargs.setdefault("port", self.port)
+        odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
             "url",
-            "mssql+pyodbc:///?odbc_connect={}".format(
-                quote_plus(self.get_odbc_string(username, password, **kwargs))
-            ),
+            "mssql+pyodbc:///?odbc_connect={}".format(quote_plus(odbc_string)),
         )
         engine = self._sqlalchemy.setdefault("engine", create_engine(url))
         return self._sqlalchemy.setdefault(
@@ -227,8 +229,6 @@ class Database(object):
         Args:
             username (str): Name of user for credential (optional).
             password (str): Password for credential (optional).
-            application (str): Name of application to represent connection as being from
-                (optional).
 
         Keyword Args:
             See keyword args listed for `sql_server_odbc_string` function.
@@ -236,6 +236,7 @@ class Database(object):
         Returns:
             str
         """
+        kwargs.setdefault("port", self.port)
         return sql_server_odbc_string(
             self.host, self.name, username, password, **kwargs
         )
