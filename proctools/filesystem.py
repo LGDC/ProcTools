@@ -188,7 +188,15 @@ def extract_archive(archive_path, extract_path, password=None):
 
 
 def flattened_path(path, flat_char="_"):
-    """Returns "flattened" version of given path, with no separators."""
+    """Returns "flattened" version of given path, with no separators.
+
+    Args:
+        path (str): Path to flatten.
+        flat_char(str): Character to replace separators with.
+
+    Returns
+        str
+    """
     for char in [os.sep, ":"]:
         path = path.replace(char, flat_char)
     while flat_char * 2 in path:

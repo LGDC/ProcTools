@@ -441,7 +441,13 @@ class Pipeline(object):
 
     @staticmethod
     def init_logger(member_name, file_mode="a", file_level=None):
-        """Initialize logger."""
+        """Initialize logger.
+
+        Args:
+            member_name (str): Name of pipeline member.
+            file_mode (str): File mode to write logfile in.
+            file_level (int, None): Log level above which to log to file.
+        """
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
