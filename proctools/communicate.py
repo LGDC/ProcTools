@@ -92,7 +92,7 @@ def send_email_smtp(
         message.add_header("To", ",".join(addresses["to"]))
     if addresses["copy"]:
         message.add_header("Cc", ",".join(addresses["copy"]))
-    if kwargs.get("reply_to_addresses"):
+    if addresses["reply_to"]:
         message.add_header("Reply-To", ",".join(addresses["reply_to"]))
     if subject:
         message.add_header("Subject", subject)
