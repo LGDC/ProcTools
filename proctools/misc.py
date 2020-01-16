@@ -154,7 +154,8 @@ def sql_server_odbc_string(
     fail or prompt for credentials.
 
     Args:
-        host (str): Name of the SQL Server instance host.
+        host (str): Name of the SQL Server instance host. If indicating a port, add to
+            host name after a comma.
         database_name (str, None): Name of the database (optional).
         username (str): Username to connect with (optional).
         password (str): Password to connect with (optional).
@@ -175,10 +176,7 @@ def sql_server_odbc_string(
     _string = "Driver={};".format(
         kwargs.get("driver_string", "{ODBC Driver 17 for SQL Server}")
     )
-    if kwargs.get("port"):
-        _string += "Server={},{};".format(host, kwargs["port"])
-    else:
-        _string += "Server={};".format(host)
+    _string += "Server={};".format(host)
     if database_name:
         _string += "Database={};".format(database_name)
     if username:

@@ -184,18 +184,17 @@ class Database(object):
 
         Args:
             name (str): Name of the database.
-            host (str): Name of the SQL Server instance host.
+            host (str): Name of the SQL Server instance host. If indicating a port, add
+                to host name after a comma.
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            port (int): Non-default port to connect on.
             data_schema_names (iter of str): Collection of data schema names. Often used
                 to identify which owned schemas need compressing. Default is empty set.
         """
         self.name = name
         self.host = host
         self.data_schema_names = set(kwargs.get("data_schema_names", set()))
-        self.port = kwargs.get("port")
         self._sqlalchemy = {}
 
     def __repr__(self):
@@ -212,7 +211,6 @@ class Database(object):
         Keyword Args:
             See keyword args listed for `sql_server_odbc_string` function.
         """
-        kwargs.setdefault("port", self.port)
         odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
             "url",
@@ -236,7 +234,6 @@ class Database(object):
         Returns:
             str
         """
-        kwargs.setdefault("port", self.port)
         return sql_server_odbc_string(
             self.host, self.name, username, password, **kwargs
         )
