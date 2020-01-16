@@ -6,6 +6,8 @@ import os
 import subprocess
 import time
 
+import img2pdf
+
 from .filesystem import folder_file_paths
 from .misc import elapsed, log_entity_states
 
@@ -77,6 +79,28 @@ def convert_image_to_pdf(image_path, output_path, error_on_failure=False):
     return result_key
 
 
+def convert_image_to_pdf2(image_path, output_path):
+    """Convert image to a PDF.
+
+    Args:
+        image_path (str): Path to image file to convert.
+        output_path (str): Path for PDF to be created at.
+
+    Returns:
+        str: Result key--"converted" or "failed to convert".
+    """
+    if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
+        raise ValueError("Image must have image file extension.")
+
+    image_file = open(image_path, mode="rb")
+    output_file = open(output_path, mode="wb")
+    with image_file, output_file:
+        pdf = img2pdf.convert(image_file)
+        output_file.write(pdf)
+    result_key = "converted"
+    return result_key
+
+
 def convert_folder_images_to_pdf(
     folder_path, keep_source_files=True, top_level_only=False, **kwargs
 ):
@@ -112,7 +136,7 @@ def convert_folder_images_to_pdf(
     )
     for i, image_path in enumerate(image_paths, start=1):
         output_path = os.path.splitext(image_path)[0] + ".pdf"
-        states[convert_image_to_pdf(image_path, output_path)] += 1
+        states[convert_image_to_pdf2(image_path, output_path)] += 1
         if not keep_source_files:
             os.remove(image_path)
         if "log_evaluated_division" in kwargs:
