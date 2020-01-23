@@ -7,6 +7,7 @@ import subprocess
 import time
 
 import img2pdf
+from PIL import Image
 
 from .filesystem import folder_file_paths
 from .misc import elapsed, log_entity_states
@@ -79,12 +80,17 @@ def convert_image_to_pdf(image_path, output_path, error_on_failure=False):
     return result_key
 
 
-def convert_image_to_pdf2(image_path, output_path):
+def convert_image_to_pdf2(image_path, output_path, **kwargs):
     """Convert image to a PDF.
 
     Args:
         image_path (str): Path to image file to convert.
         output_path (str): Path for PDF to be created at.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        disable_max_image_pixels: If True the underlying library maximum number of
+            pixels an image can have to be processed. Default is `False`.
 
     Returns:
         str: Result key--"converted" or "failed to convert".
@@ -92,12 +98,59 @@ def convert_image_to_pdf2(image_path, output_path):
     if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
         raise ValueError("Image must have image file extension.")
 
+    # img2pdf uses Pillow, which will error out if the image in question exceeds
+    # MAX_IMAGE_PIXELS with `PIL.Image.DecompressionBombError`. Can disable.
+    if kwargs.get("disable_max_image_pixels"):
+        Image.MAX_IMAGE_PIXELS = None
     image_file = open(image_path, mode="rb")
     output_file = open(output_path, mode="wb")
     with image_file, output_file:
-        pdf = img2pdf.convert(image_file)
-        output_file.write(pdf)
-    result_key = "converted"
+        try:
+            pdf = img2pdf.convert(image_file)
+            output_file.write(pdf)
+            result_key = "converted"
+        except Exception as exception:  # pylint: disable=broad-except
+            # img2pdf will not strip alpha channel (PDF images cannot have alphas).
+            if str(exception) == "Refusing to work on images with alpha channel":
+                # The image2pdf command-line tool will do this.
+                result_key = convert_image_to_pdf_cmd(image_path, output_path)
+    return result_key
+
+
+def convert_image_to_pdf_cmd(image_path, output_path, error_on_failure=False):
+    """Convert image to a PDF using command-line tool.
+
+    Args:
+        image_path (str): Path to image file to convert.
+        output_path (str): Path for PDF to be created at.
+        error_on_failure (bool): Raise IOError if failure creating PDF.
+
+    Returns:
+        str: Result key--"converted" or "failed to convert".
+    """
+    if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
+        raise ValueError("Image must have image file extension.")
+
+    call_string = """{} -i "{}" -o "{}" -g overwrite""".format(
+        IMAGE2PDF_PATH, image_path, output_path
+    )
+    subprocess.check_call(call_string)
+    # Image2PDF returns before the underlying library's process completes. So we will
+    # need to wait until the PDF shows up in the file system.
+    wait_interval, max_wait, wait_time = 0.1, 30.0, 0.0
+    while os.path.isfile(output_path) is False:
+        if wait_time < max_wait:
+            wait_time += wait_interval
+            time.sleep(wait_interval)
+        elif error_on_failure:
+            raise IOError("Image2PDF failed to create PDF.")
+
+        else:
+            result_key = "failed to convert"
+            break
+
+    else:
+        result_key = "converted"
     return result_key
 
 
@@ -119,6 +172,8 @@ def convert_folder_images_to_pdf(
         log_evaluated_division (int): Division at which to emit a logline about number
             of files evaluated so far. If not defined or None, will default to not
             logging evaluated divisions.
+        disable_max_image_pixels: If True the underlying library maximum number of
+            pixels an image can have to be processed. Default is `False`.
 
     Returns:
         collections.Counter: Counts for each update result type: "converted" or "failed
@@ -136,7 +191,7 @@ def convert_folder_images_to_pdf(
     )
     for i, image_path in enumerate(image_paths, start=1):
         output_path = os.path.splitext(image_path)[0] + ".pdf"
-        states[convert_image_to_pdf2(image_path, output_path)] += 1
+        states[convert_image_to_pdf2(image_path, output_path, **kwargs)] += 1
         if not keep_source_files:
             os.remove(image_path)
         if "log_evaluated_division" in kwargs:
