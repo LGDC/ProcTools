@@ -206,8 +206,9 @@ def convert_folder_images_to_pdf(
     )
     for i, image_path in enumerate(image_paths, start=1):
         output_path = os.path.splitext(image_path)[0] + ".pdf"
-        states[convert_image_to_pdf2(image_path, output_path, **kwargs)] += 1
-        if not keep_source_files:
+        result_key = convert_image_to_pdf2(image_path, output_path, **kwargs)
+        states[result_key] += 1
+        if not keep_source_files and "failed" not in result_key:
             os.remove(image_path)
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
