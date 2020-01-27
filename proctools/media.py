@@ -109,11 +109,18 @@ def convert_image_to_pdf2(image_path, output_path, **kwargs):
             pdf = img2pdf.convert(image_file)
             output_file.write(pdf)
             result_key = "converted"
-        except Exception as exception:  # pylint: disable=broad-except
+        # Blame that alpha channel exception for the broad-except.
+        except (TypeError, Exception) as error:  # pylint: disable=broad-except
+            # Value too large for long. Seems to be an issue with signed integers. Py2?
+            if str(error).startswith("cannot handle type <type 'long'> with content"):
+                result_key = convert_image_to_pdf_cmd(image_path, output_path)
             # img2pdf will not strip alpha channel (PDF images cannot have alphas).
-            if str(exception) == "Refusing to work on images with alpha channel":
+            elif str(error) == "Refusing to work on images with alpha channel":
                 # The image2pdf command-line tool will do this.
                 result_key = convert_image_to_pdf_cmd(image_path, output_path)
+            else:
+                raise
+
     return result_key
 
 
