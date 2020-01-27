@@ -89,14 +89,20 @@ def convert_image_to_pdf2(image_path, output_path, **kwargs):
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
+        overwrite_older_only (bool): If PDF already exists, will only overwrite if
+            modified date is older than for the source file. Default is `True`.
         disable_max_image_pixels: If True the underlying library maximum number of
             pixels an image can have to be processed. Default is `False`.
 
     Returns:
-        str: Result key--"converted" or "failed to convert".
+        str: Result key--"converted", "failed to convert", or "no conversion necessary".
     """
     if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
         raise ValueError("Image must have image file extension.")
+
+    if kwargs.get("overwrite_older_only", True) and os.path.exists(output_path):
+        if os.path.getmtime(output_path) > os.path.getmtime(image_path):
+            return "no conversion necessary"
 
     # img2pdf uses Pillow, which will error out if the image in question exceeds
     # MAX_IMAGE_PIXELS with `PIL.Image.DecompressionBombError`. Can disable.
@@ -174,6 +180,8 @@ def convert_folder_images_to_pdf(
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
+        overwrite_older_only (bool): If PDF already exists, will only overwrite if
+            modified date is older than for the source file. Default is `True`.
         logger (logging.Logger): Logger to emit loglines to. If not defined will default
             to submodule logger.
         log_evaluated_division (int): Division at which to emit a logline about number
