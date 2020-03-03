@@ -176,6 +176,7 @@ def etl_dataset(output_path, source_path=None, **kwargs):
         field_name_change_map (dict): Mapping of field names to their replacement name.
         insert_dataset_paths (iter): Collection of dataset paths to insert features
             from.
+        field_value_transfer_map (dict): Mapping of source to destination field name.
         clean_whitespace_field_names (iter): Collection of field names to clean their
             values of excess whitespace.
         dissolve_field_names (iter): Collection of field names to dissolve features on.
@@ -203,6 +204,7 @@ def etl_dataset(output_path, source_path=None, **kwargs):
         insert_features_from_paths(etl, kwargs.get("insert_dataset_paths", []))
         # Alter attributes.
         clean_whitespace(etl, kwargs.get("clean_whitespace_field_names", []))
+        transfer_field_values(etl, kwargs.get("field_value_transfer_map", {}))
         # Combine features.
         if kwargs.get("dissolve_field_names"):
             etl.transform(
