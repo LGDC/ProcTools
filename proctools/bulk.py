@@ -361,3 +361,22 @@ def rename_fields(dataset, field_name_change_map):
         func = partial(arcetl.dataset.rename_field, dataset_path=dataset)
     for old_name, new_name in field_name_change_map.items():
         func(field_name=old_name, new_field_name=new_name)
+
+
+def transfer_field_values(dataset, field_value_transfer_map):
+    """Transfer field valuess using field name transfer map.
+
+    Args:
+        dataset (str, arcetl.etl.ArcETL): Path to dataset, or ArcETL instance.
+        field_value_transfer_map (dict): Mapping of source to destination field name.
+    """
+    import arcetl
+
+    if isinstance(dataset, arcetl.etl.ArcETL):
+        func = partial(
+            dataset.transform, transformation=arcetl.attributes.update_by_field
+        )
+    else:
+        func = partial(arcetl.attributes.update_by_field, dataset_path=dataset)
+    for source_name, destination_name in field_value_transfer_map.items():
+        func(field_name=destination_name, source_field_name=source_name)
