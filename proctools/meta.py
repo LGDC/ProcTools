@@ -173,10 +173,10 @@ class Database(object):
     """Representation of database information.
 
     Attributes:
-        name (str): Name of the database.
-        host (str): Name of the SQL Server instance host.
-        path (str): SDE-style path to database.
         data_schema_names (set): Collection of data schema names.
+        host (str): Name & port configuration of the instance host.
+        name (str): Name of the database.
+        path (str): SDE-style path to database.
     """
 
     def __init__(self, name, host, **kwargs):
@@ -201,6 +201,11 @@ class Database(object):
         return "{}(name={!r}, host={!r})".format(
             self.__class__.__name__, self.name, self.host
         )
+
+    @property
+    def hostname(self):
+        """str: Name of the instance host."""
+        return self.host.split(",")[0]
 
     def create_session(self, username=None, password=None, **kwargs):
         """Return SQLAlchemy session instance to database.
