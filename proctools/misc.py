@@ -31,18 +31,6 @@ def access_odbc_string(database_path):
     return "DRIVER={{{driver}}};DBQ={database}".format(**details)
 
 
-def datestamp(fmt="%Y_%m_%d"):
-    """Return string with current datestamp.
-
-    Args:
-        fmt (str): String-formatting for stamp.
-
-    Returns:
-        str
-    """
-    return timestamp(fmt)
-
-
 def elapsed(start_time, logger=None, log_level=logging.INFO):
     """Return time-delta since start time.
 
