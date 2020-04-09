@@ -218,8 +218,7 @@ class Database(object):
         """
         odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
-            "url",
-            "mssql+pyodbc:///?odbc_connect={}".format(quote_plus(odbc_string)),
+            "url", "mssql+pyodbc:///?odbc_connect={}".format(quote_plus(odbc_string)),
         )
         engine = self._sqlalchemy.setdefault("engine", create_engine(url))
         return self._sqlalchemy.setdefault(
@@ -315,6 +314,63 @@ class Dataset(object):
             path (str): Path to add.
         """
         self._path[tag] = path
+
+    def attributes_as_dicts(self, path_tag=None, field_names=None, **kwargs):
+        """Generate mappings of feature attribute name to value.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            path_tag (str): Tag for the path to generate attributes from.
+            field_names (iter): Collection of field names. Names will be the keys in the
+                dictionary mapping to their values. If value is None, all attributes
+                fields will be used.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcetl.attributes.as_dicts`.
+
+        Yields:
+            dict.
+        """
+        import arcetl
+
+        features = arcetl.attributes.as_dicts(
+            dataset_path=self.path(path_tag), field_names=field_names, **kwargs
+        )
+        for feature in features:
+            yield feature
+
+    def attributes_as_iters(self, path_tag=None, field_names=None, **kwargs):
+        """Generate iterables of feature attribute values.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            path_tag (str): Tag for the path to generate attributes from.
+            field_names (iter): Collection of field names. The order of the names in
+                the collection will determine where its value will fall in the generated
+                item. If value is None, all attributes fields will be used, in
+                `self.field_names` order.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcetl.attributes.as_iters`.
+
+        Yields:
+            iter.
+        """
+        import arcetl
+
+        if not field_names:
+            field_names = self.field_names
+        features = arcetl.attributes.as_dicts(
+            dataset_path=self.path(path_tag), field_names=field_names, **kwargs
+        )
+        for feature in features:
+            yield feature
 
     def create(self, path, field_tag=None, spatial_reference_item=None):
         """Create dataset from instance properties.
