@@ -215,5 +215,5 @@ def convert_folder_images_to_pdf(
                 log.info("Evaluated {:,} images.".format(i))
     log_entity_states("images", states, log, log_level=logging.INFO)
     elapsed(start_time, log)
-    log.info("End: Update.")
+    log.info("End: Convert.")
     return states

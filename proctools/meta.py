@@ -176,7 +176,6 @@ class Database(object):
         data_schema_names (set): Collection of data schema names.
         host (str): Name & port configuration of the instance host.
         name (str): Name of the database.
-        path (str): SDE-style path to database.
     """
 
     def __init__(self, name, host, **kwargs):
