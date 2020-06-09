@@ -115,13 +115,14 @@ def dropbox_upload_file(source_path, destination_path, app_token, **kwargs):
     return file_meta.path_display
 
 
-def ftp_upload_file(source_path, destination_path, host, **kwargs):
+def ftp_upload_file(source_path, destination_path, host, port=21, **kwargs):
     """Upload file to FTP site.
 
     Args:
         source_path (str): Path of file to upload.
         destination_path (str): Path from FTP root folder to upload into.
         host (str): Host name of FTP site.
+        port (int): Port to connect to (will use default if None).
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
@@ -134,9 +135,9 @@ def ftp_upload_file(source_path, destination_path, host, **kwargs):
     LOG.info("Uploading %s to FTP site at %s.", source_path, host)
     destination_path = _scrub_root_path(destination_path)
     try:
-        ftp = ftplib.FTP(
-            host, user=kwargs.get("username"), passwd=kwargs.get("password")
-        )
+        ftp = ftplib.FTP(host='')
+        ftp.connect(host, port)
+        ftp.login(user=kwargs.get("username"), passwd=kwargs.get("password"))
         ftp.cwd(os.path.dirname(destination_path))
         with open(source_path, mode="rb") as file:
             ftp.storbinary("STOR " + os.path.basename(destination_path), file)
