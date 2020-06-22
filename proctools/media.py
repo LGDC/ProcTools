@@ -219,6 +219,63 @@ def convert_folder_images_to_pdf(
     return states
 
 
+def create_folder_image_thumbnails(
+    folder_path, width, height, suffix, top_level_only=False, **kwargs
+):
+    """Create thumbnails of images in folder.
+
+    Args:
+        folder_path (str): Path to folder.
+        width (int): Maximum width in pixels.
+        height (int): Maximum height in pixels.
+        suffix (str): Suffix to attach to file name.
+        top_level_only (bool): Only update files at top-level of folder if True; include
+            subfolders as well if False.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        resample (int): Filter to use for resampling. Refer to Pillow package for filter
+            number codes. Default is Bicubic (PIL.Image.BICUBIC = 3)
+        overwrite_older_only (bool): If PDF already exists, will only overwrite if
+            modified date is older than for the source file. Default is `True`.
+        logger (logging.Logger): Logger to emit loglines to. If not defined will default
+            to submodule logger.
+        log_evaluated_division (int): Division at which to emit a logline about number
+            of files evaluated so far. If not defined or None, will default to not
+            logging evaluated divisions.
+        disable_max_image_pixels: If True the underlying library maximum number of
+            pixels an image can have to be processed. Default is `False`.
+
+    Returns:
+        collections.Counter: Counts for each update result type: "converted" or "failed
+            to convert".
+    """
+    start_time = datetime.datetime.now()
+    log = kwargs.get("logger", LOG)
+    log.info("Start: Create thumbnail files for images in folder `%s`.", folder_path)
+    if not os.access(folder_path, os.R_OK):
+        raise OSError("Cannot access `{}`.".format(folder_path))
+
+    states = Counter()
+    image_paths = folder_file_paths(
+        folder_path, top_level_only, file_extensions=IMAGE_FILE_EXTENSIONS
+    )
+    for i, image_path in enumerate(image_paths, start=1):
+        image_path_no_extension, extension = os.path.splitext(image_path)
+        output_path = image_path_no_extension + suffix + extension
+        result_key = create_image_thumbnail(
+            image_path, output_path, width, height, **kwargs
+        )
+        states[result_key] += 1
+        if "log_evaluated_division" in kwargs:
+            if i % kwargs["log_evaluated_division"] == 0:
+                log.info("Evaluated {:,} images.".format(i))
+    log_entity_states("images", states, log, log_level=logging.INFO)
+    elapsed(start_time, log)
+    log.info("End: Create.")
+    return states
+
+
 def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
     """Create a thumbnail of an image.
 
