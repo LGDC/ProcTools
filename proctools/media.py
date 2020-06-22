@@ -170,7 +170,7 @@ def convert_image_to_pdf_cmd(image_path, output_path, error_on_failure=False):
 def convert_folder_images_to_pdf(
     folder_path, keep_source_files=True, top_level_only=False, **kwargs
 ):
-    """Convert image files i replica folder from source.
+    """Convert image files to PDFs in folder.
 
     Args:
         folder_path (str): Path to folder.
@@ -217,3 +217,42 @@ def convert_folder_images_to_pdf(
     elapsed(start_time, log)
     log.info("End: Convert.")
     return states
+
+
+def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
+    """Create a thumbnail of an image.
+
+    Args:
+        image_path (str): Path to image file to convert.
+        output_path (str): Path for PDF to be created at.
+        width (int): Maximum width in pixels.
+        height (int): Maximum height in pixels.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        resample (int): Filter to use for resampling. Refer to Pillow package for filter
+            number codes. Default is Bicubic (PIL.Image.BICUBIC = 3)
+        overwrite_older_only (bool): If PDF already exists, will only overwrite if
+            modified date is older than for the source file. Default is `True`.
+        disable_max_image_pixels: If True the underlying library maximum number of
+            pixels an image can have to be processed. Default is `False`.
+
+    Returns:
+        str: Result key--"created", "failed to create", or "no creation necessary".
+    """
+    if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
+        raise ValueError("Image must have image file extension.")
+
+    if kwargs.get("overwrite_older_only", True) and os.path.exists(output_path):
+        if os.path.getmtime(output_path) > os.path.getmtime(image_path):
+            return "no conversion necessary"
+
+    # Pillow will error out if the image in question exceeds MAX_IMAGE_PIXELS with
+    # `PIL.Image.DecompressionBombError`. Can disable.
+    if kwargs.get("disable_max_image_pixels"):
+        Image.MAX_IMAGE_PIXELS = None
+    image = Image.open(image_path)
+    image.thumbnail(size=(width, height), **kwargs)
+    image.save(output_path, dpi=image.info["dpi"])
+    result_key = "converted"
+    return result_key
