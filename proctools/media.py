@@ -7,7 +7,7 @@ import subprocess
 import time
 
 import img2pdf
-from PIL import Image
+from PIL import Image, ImageFile
 
 from .filesystem import folder_file_paths
 from .misc import elapsed, log_entity_states
@@ -296,6 +296,8 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
     Keyword Args:
         resample (int): Filter to use for resampling. Refer to Pillow package for filter
             number codes. Default is Bicubic (PIL.Image.BICUBIC = 3)
+        fallback_dpi (int): DPI to use for thumbnail if source image does not have DPI
+            information in header. Default is 72.
         overwrite_older_only (bool): If PDF already exists, will only overwrite if
             modified date is older than for the source file. Default is `True`.
         disable_max_image_pixels: If True the underlying library maximum number of
@@ -304,6 +306,8 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
     Returns:
         str: Result key--"created", "failed to create", or "no creation necessary".
     """
+    kwargs.setdefault("resample", Image.BICUBIC)
+    fallback_dpi = (kwargs.get("fallback_dpi", 72), kwargs.get("fallback_dpi", 72))
     if os.path.splitext(image_path)[1].lower() not in IMAGE_FILE_EXTENSIONS:
         raise ValueError("Image must have image file extension.")
 
@@ -316,7 +320,21 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
     if kwargs.get("disable_max_image_pixels"):
         Image.MAX_IMAGE_PIXELS = None
     image = Image.open(image_path)
-    image.thumbnail(size=(width, height), **kwargs)
-    image.save(output_path, dpi=image.info["dpi"])
+    try:
+        image.thumbnail(size=(width, height), resample=kwargs["resample"])
+    except IOError:
+        # Attempt again but allow truncated images.
+        # Alternative if necessary: https://stackoverflow.com/a/20068394
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        try:
+            image.thumbnail(size=(width, height), resample=kwargs["resample"])
+        except IOError:
+            LOG.exception("image_path=`%s`", image_path)
+            raise
+
+        finally:
+            ImageFile.LOAD_TRUNCATED_IMAGES = False
+
+    image.save(output_path, dpi=image.info.get("dpi", fallback_dpi))
     result_key = "converted"
     return result_key
