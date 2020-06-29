@@ -238,6 +238,8 @@ def create_folder_image_thumbnails(
             number codes. Default is Bicubic (PIL.Image.BICUBIC = 3)
         overwrite_older_only (bool): If PDF already exists, will only overwrite if
             modified date is older than for the source file. Default is `True`.
+        ignore_suffix (bool): If image file has the given suffix, ignore as an existing
+            thumbnail. Default is True.
         logger (logging.Logger): Logger to emit loglines to. If not defined will default
             to submodule logger.
         log_evaluated_division (int): Division at which to emit a logline about number
@@ -262,10 +264,15 @@ def create_folder_image_thumbnails(
     )
     for i, image_path in enumerate(image_paths, start=1):
         image_path_no_extension, extension = os.path.splitext(image_path)
-        output_path = image_path_no_extension + suffix + extension
-        result_key = create_image_thumbnail(
-            image_path, output_path, width, height, **kwargs
-        )
+        if kwargs.get(
+            "ignore_suffix", True
+        ) and image_path_no_extension.lower().endswith(suffix.lower()):
+            result_key = "ignoring for suffix"
+        else:
+            output_path = image_path_no_extension + suffix + extension
+            result_key = create_image_thumbnail(
+                image_path, output_path, width, height, **kwargs
+            )
         states[result_key] += 1
         if "log_evaluated_division" in kwargs:
             if i % kwargs["log_evaluated_division"] == 0:
