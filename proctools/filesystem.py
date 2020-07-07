@@ -292,10 +292,18 @@ def same_file(file_path, cmp_file_path, not_exists_ok=True):
         )
         same = non_count == len(file_paths)
     else:
-        same = all(
-            filecmp.cmp(file_path, cmp_file_path)
-            for file_path, cmp_file_path in pairwise(file_paths)
-        )
+        try:
+            same = all(
+                filecmp.cmp(file_path, cmp_file_path)
+                for file_path, cmp_file_path in pairwise(file_paths)
+            )
+        except IOError:
+            LOG.error(
+                "Permission denied comparing one of files: %s",
+                ",".join("`{}`".format(file_path) for file_path in file_paths),
+            )
+            raise
+
     return same
 
 
