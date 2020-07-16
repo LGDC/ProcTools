@@ -19,7 +19,7 @@ from jinja2 import Environment, PackageLoader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# import arcetl  # Imported locally to avoid slow imports.
+# import arcproc  # Imported locally to avoid slow imports.
 from .communicate import extract_email_addresses, send_email_smtp
 from .filesystem import create_folder
 from .misc import sql_server_odbc_string
@@ -328,14 +328,14 @@ class Dataset(object):
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcetl.attributes.as_dicts`.
+            Refer to Keyword Args for `arcproc.attributes.as_dicts`.
 
         Yields:
             dict.
         """
-        import arcetl
+        import arcproc
 
-        features = arcetl.attributes.as_dicts(
+        features = arcproc.attributes.as_dicts(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
@@ -356,16 +356,16 @@ class Dataset(object):
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcetl.attributes.as_iters`.
+            Refer to Keyword Args for `arcproc.attributes.as_iters`.
 
         Yields:
             iter.
         """
-        import arcetl
+        import arcproc
 
         if not field_names:
             field_names = self.field_names
-        features = arcetl.attributes.as_dicts(
+        features = arcproc.attributes.as_dicts(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
@@ -384,7 +384,7 @@ class Dataset(object):
         Returns:
             str: Path of dataset created.
         """
-        import arcetl
+        import arcproc
 
         # Check for path in path-tags; otherwise assume path is literal.
         dataset_path = self._path.get(path, path)
@@ -393,7 +393,7 @@ class Dataset(object):
             if field_tag
             else self.fields
         )
-        arcetl.dataset.create(
+        arcproc.dataset.create(
             dataset_path,
             field_metadata_list,
             geometry_type=self.geometry_type,
@@ -573,10 +573,10 @@ def dataset_last_change_date(
     dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
 ):
     """Return date of the last change on dataset with tracking fields."""
-    import arcetl
+    import arcproc
 
     field_names = [init_date_field_name, mod_date_field_name]
-    date_iters = arcetl.attributes.as_iters(dataset_path, field_names)
+    date_iters = arcproc.attributes.as_iters(dataset_path, field_names)
     dates = set(chain.from_iterable(date_iters))
     # datetimes cannot compare to NoneTypes.
     if None in dates:
