@@ -180,6 +180,8 @@ def convert_folder_images_to_pdf(
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
+        skip_suffixes (iter of str): Collection of strings to match against
+            filenames to ignore.
         overwrite_older_only (bool): If PDF already exists, will only overwrite if
             modified date is older than for the source file. Default is `True`.
         logger (logging.Logger): Logger to emit loglines to. If not defined will default
@@ -205,8 +207,15 @@ def convert_folder_images_to_pdf(
         folder_path, top_level_only, file_extensions=IMAGE_FILE_EXTENSIONS
     )
     for i, image_path in enumerate(image_paths, start=1):
-        output_path = os.path.splitext(image_path)[0] + ".pdf"
-        result_key = convert_image_to_pdf2(image_path, output_path, **kwargs)
+        result_key = None
+        for suffix in kwargs.get("skip_suffixes"):
+            if suffix.lower() in os.path.basename(image_path).lower():
+                result_key = "skipped"
+                continue
+    
+        if not result_key:
+            output_path = os.path.splitext(image_path)[0] + ".pdf"
+            result_key = convert_image_to_pdf2(image_path, output_path, **kwargs)
         states[result_key] += 1
         if not keep_source_files and "failed" not in result_key:
             os.remove(image_path)
