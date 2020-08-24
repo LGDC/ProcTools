@@ -208,7 +208,7 @@ def convert_folder_images_to_pdf(
     )
     for i, image_path in enumerate(image_paths, start=1):
         result_key = None
-        for suffix in kwargs.get("skip_suffixes"):
+        for suffix in kwargs.get("skip_suffixes", []):
             if suffix.lower() in os.path.basename(image_path).lower():
                 result_key = "skipped"
                 continue
