@@ -37,6 +37,32 @@ def add_missing_fields(dataset, dataset_metadata, tags=None):
         func(exist_ok=True, **meta)
 
 
+def clean_all_whitespace(dataset, **kwargs):
+    """Clean whitespace in values of all text fields dataset.
+
+    Args:
+        dataset (str, arcproc.managers.Procedure): Path to dataset, or Procedure
+            instance.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        See keyword arguments for `arcproc.attributes.update_by_function`.
+    """
+    import arcproc
+
+    if isinstance(dataset, arcproc.managers.Procedure):
+        func = partial(
+            dataset.transform, transformation=arcproc.attributes.update_by_function
+        )
+        dataset_meta = arcproc.dataset.dataset_metadata(dataset.transform_path)
+    else:
+        func = partial(arcproc.attributes.update_by_function, dataset_path=dataset)
+        dataset_meta = arcproc.dataset.dataset_metadata(dataset)
+    for field in dataset_meta["user_fields"]:
+        if field["type"] == "text":
+            func(field_name=field["name"], function=value.clean_whitespace, **kwargs)
+
+
 def clean_whitespace(dataset, field_names, **kwargs):
     """Clean whitespace in values of fields.
 
