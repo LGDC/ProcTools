@@ -81,7 +81,8 @@ def concatenate(*values, **kwargs):
         str: Concatenated values.
     """
     separator = kwargs.get("separator", " ")
-    return separator.join(str(value).strip() for value in values if value is not None)
+    val = separator.join(str(value).strip() for value in values if value is not None)
+    return val if val else None
 
 
 def datetime_from_string(value):
