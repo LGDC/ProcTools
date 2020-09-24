@@ -60,7 +60,11 @@ def clean_all_whitespace(dataset, **kwargs):
         dataset_meta = arcproc.dataset.dataset_metadata(dataset)
     for field in dataset_meta["user_fields"]:
         if field["type"].lower() in ["string", "text"]:
-            func(field_name=field["name"], function=value.clean_whitespace, **kwargs)
+            if field["is_nullable"]:
+                update_func = value.clean_whitespace
+            else:
+                update_func = value.clean_whitespace_without_clear
+            func(field_name=field["name"], function=update_func, **kwargs)
 
 
 def clean_whitespace(dataset, field_names, **kwargs):
