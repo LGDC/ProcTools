@@ -59,7 +59,7 @@ def clean_all_whitespace(dataset, **kwargs):
         func = partial(arcproc.attributes.update_by_function, dataset_path=dataset)
         dataset_meta = arcproc.dataset.dataset_metadata(dataset)
     for field in dataset_meta["user_fields"]:
-        if field["type"] == "text":
+        if field["type"].lower() in ["string", "text"]:
             func(field_name=field["name"], function=value.clean_whitespace, **kwargs)
 
 
