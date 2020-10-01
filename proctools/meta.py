@@ -171,20 +171,12 @@ class Batch(object):
                 key=itemgetter("start_time", "end_time"),
                 reverse=True,
             )
-            batch_status = (
-                1 if all(run["status"] == 1 for run in last_run_metas) else -1
-            )
             kwargs.update(self.notification_addresses)
-            send_email_smtp(
-                host,
-                from_address,
-                subject="Processing Batch: {} ({})".format(
-                    self.name, RUN_STATUS_DESCRIPTION[batch_status]
-                ),
-                body=template.render(last_run_metas=last_run_metas),
-                body_type="html",
-                **kwargs
+            kwargs["subject"] = "Processing Batch: {} ({})".format(
+                self.name, self.status_description
             )
+            kwargs["body"] = template.render(last_run_metas=last_run_metas)
+            send_email_smtp(host, from_address, body_type="html", **kwargs)
 
 
 class Database(object):
