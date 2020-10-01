@@ -154,7 +154,6 @@ class Batch(object):
         Args:
             host (str, None): Host name of SMTP server.
             from_address (str): Email address for sender.
-            body (str): Message body text.
             **kwargs: Arbitrary keyword arguments. See below.
 
         Kwargs:
