@@ -134,6 +134,20 @@ class Batch(object):
                 times.remove(None)
         return times
 
+    @property
+    def status(self):
+        """int: status ID for current batch run."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select status from Last_Job_Run where batch_id = ?;"
+            cursor.execute(sql, [self.id])
+            return 1 if all(row[0] == 1 for row in cursor) else -1
+
+    @property
+    def status_description(self):
+        """str: status description for current batch run."""
+        return RUN_STATUS_DESCRIPTION[self.status]
+
     def send_notification(self, host, from_address, **kwargs):
         """Send email notification for batch.
 
