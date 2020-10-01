@@ -122,6 +122,18 @@ class Batch(object):
             }
             return addresses
 
+    @property
+    def start_times(self):
+        """set of tuples: Collection of tuples containing start & ."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            sql = "select start_time from Last_Job_Run where batch_id = ?;"
+            cursor.execute(sql, [self.id])
+            times = {datetime_from_string(row[0]) for row in cursor}
+            if None in times:
+                times.remove(None)
+        return times
+
     def send_notification(self, host, from_address, **kwargs):
         """Send email notification for batch.
 
