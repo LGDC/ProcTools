@@ -23,6 +23,7 @@ from sqlalchemy.orm import sessionmaker
 from .communicate import extract_email_addresses, send_email_smtp
 from .filesystem import create_folder
 from .misc import sql_server_odbc_string
+from .value import datetime_from_string
 
 # Py2.
 if sys.version_info.major >= 3:
@@ -94,16 +95,8 @@ class Batch(object):
             # Coerce timestamps to datetime--no sqlite3 date/time types, using text.
             for run_meta in metas:
                 for key in ["start_time", "end_time"]:
-                    if run_meta[key] is not None:
-                        try:
-                            run_meta[key] = datetime.datetime.strptime(
-                                run_meta[key], "%Y-%m-%d %H:%M:%S.%f"
-                            )
-                        except ValueError:
-                            run_meta[key] = datetime.datetime.strptime(
-                                run_meta[key], "%Y-%m-%d %H:%M:%S"
-                            )
-            return metas
+                    run_meta[key] = datetime_from_string(run_meta[key])
+        return metas
 
     @property
     def notification_addresses(self):
