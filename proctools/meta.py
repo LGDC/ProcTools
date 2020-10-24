@@ -1,4 +1,5 @@
 """Metadata objects."""
+from collections import defaultdict
 import datetime
 from functools import partial
 from itertools import chain
@@ -314,6 +315,24 @@ class Dataset(object):
     def id_fields(self):
         """list of dict: Dataset identifier field info dictionaries."""
         return [field for field in self.fields if field["is_id"]]
+
+    @property
+    def tag_field_names(self):
+        """dict: Mapping of field tag to names of fields so-tagged."""
+        _tag_field_names = defaultdict(list)
+        for field in self.fields:
+            for tag in field.get("tags", []):
+                _tag_field_names[tag].append(field["name"])
+        return dict(_tag_field_names)
+
+    @property
+    def tag_fields(self):
+        """dict: Mapping of field tag to info dictionaries of field so-tagged."""
+        _tag_fields = defaultdict(list)
+        for field in self.fields:
+            for tag in field.get("tags", []):
+                _tag_fields[tag].append(field)
+        return dict(_tag_fields)
 
     def add_path(self, tag, path):
         """Add a path for the given tag.
