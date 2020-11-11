@@ -76,13 +76,27 @@ def concatenate(*values, **kwargs):
     Keyword Args:
         separator (str): Character(s) to separate values with. Default is a single
             space " ".
+        wrappers (Collection of str): Two string values with which to place before and
+            after each value. For example, ["(", ")"] will wrap values with parentheses.
+            Default is ("", "") - no wrapper.
+        nonetype_replacement (str): Value to replace NoneTypes with (if provided).
 
     Returns:
         str: Concatenated values.
     """
     separator = kwargs.get("separator", " ")
-    val = separator.join(str(value).strip() for value in values if value is not None)
-    return val if val else None
+    wrappers = kwargs.get("wrappers", ["", ""])
+    values_to_concatenate = []
+    for value in values:
+        if value is None:
+            if "nonetype_replacement" in kwargs:
+                values_to_concatenate.append(kwargs["nonetype_replacement"])
+        else:
+            values_to_concatenate.append(str(value).strip())
+    concatenated = separator.join(
+        value.join(wrappers) for value in values_to_concatenate
+    )
+    return concatenated if concatenated else None
 
 
 def datetime_from_string(value):
