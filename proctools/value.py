@@ -115,6 +115,18 @@ def datetime_from_string(value):
     return result
 
 
+def feature_key(*id_values):
+    """Return key value that defines a unique feature.
+
+    Args:
+        *id_values (str): Ordered collection of ID values.
+
+    Returns:
+        str
+    """
+    return concatenate(*id_values, separator=" | ", nonetype_replacement="")
+
+
 def force_case(value, case_method_name):
     """Return value converted to chosen case style.
 
