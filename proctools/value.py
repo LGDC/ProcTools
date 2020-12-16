@@ -1,4 +1,5 @@
 """Value-building, -deriving, and -cleaning objects."""
+from hashlib import sha256
 import logging
 import string
 import sys
@@ -125,6 +126,18 @@ def feature_key(*id_values):
         str
     """
     return concatenate(*id_values, separator=" | ", nonetype_replacement="")
+
+
+def feature_key_hash(*id_values):
+    """Return key-hash hexadecimal  value that defines a unique feature.
+
+    Args:
+        *id_values (str): Ordered collection of ID values.
+
+    Returns:
+        str
+    """
+    return sha256(feature_key(*id_values).encode()).hexdigest()
 
 
 def force_case(value, case_method_name):
