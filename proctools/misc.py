@@ -116,6 +116,33 @@ def log_entity_states(entity_type, states, logger=None, **kwargs):
             logger.log(level, line)
 
 
+def merge_common_collections(*collections):
+    """Generate sets of merged non-mapping collections that share any items.
+
+    Args:
+        *collections (iter): Collections to merge.
+
+    Yields:
+        set
+    """
+    merged_collections = []
+    merge_has_happened = False
+    for collection in collections:
+        collection = set(collection)
+        for merged_collection in merged_collections:
+            if not merged_collection.isdisjoint(collection):
+                merged_collection |= collection
+                merge_has_happened = True
+                break
+
+        else:
+            merged_collections.append(collection)
+    if merge_has_happened:
+        merged_collections = merge_common_collections(*merged_collections)
+    for collection in merged_collections:
+        yield collection
+
+
 def randomized(iterable):
     """Generate sequence of items in random order.
 
