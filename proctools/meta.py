@@ -440,7 +440,7 @@ class Dataset(object):
             str: Path of dataset with given tag.
         """
         if tag not in self._path:
-            raise AttributeError("{!r} path does not exist.".format(tag))
+            raise AttributeError("{!r} path-tag does not exist.".format(tag))
 
         return self._path[tag]
 
