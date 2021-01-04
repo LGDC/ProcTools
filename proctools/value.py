@@ -234,6 +234,28 @@ def is_numeric(value, nonetype_ok=True):
     return result
 
 
+def leading_number_sort_key(numbered_string):
+    """Return key for sorting strings starting with numbers.
+
+    Args:
+        numbered_string (str): String to sort.
+
+    Returns:
+        tuple
+    """
+    if not numbered_string:
+        return (-(2 ** 63), "")
+
+    non_numeric_tail = numbered_string.lstrip("0123456789")
+    if non_numeric_tail == numbered_string:
+        numeric_head = 2 ** 63 - 1
+    elif not non_numeric_tail:
+        numeric_head = int(numbered_string)
+    else:
+        numeric_head = int(numbered_string[: -len(non_numeric_tail)])
+    return (numeric_head, non_numeric_tail)
+
+
 def parity(*numbers):
     """Return proper parity description for a collection of integers.
 
