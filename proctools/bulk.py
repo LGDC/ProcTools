@@ -4,7 +4,7 @@ import os
 
 # import arcproc  # Imported locally to avoid slow imports.
 
-from . import value
+from . import value  # pylint: disable=relative-beyond-top-level
 
 
 __all__ = []
@@ -427,3 +427,28 @@ def transfer_field_values(dataset, field_value_transfer_map):
         func = partial(arcproc.attributes.update_by_field, dataset_path=dataset)
     for source_name, destination_name in field_value_transfer_map.items():
         func(field_name=destination_name, source_field_name=source_name)
+
+
+def update_by_function(dataset, field_names, function, **kwargs):
+    """Update given fields by provided function.
+
+    Args:
+        dataset (str, arcproc.managers.Procedure): Path to dataset, or Procedure
+            instance.
+        field_names (iter): Collection of field names to clear.
+        function (types.FunctionType): Function to get values from.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        See keyword arguments for `arcproc.attributes.update_by_function`.
+    """
+    import arcproc
+
+    if isinstance(dataset, arcproc.managers.Procedure):
+        func = partial(
+            dataset.transform, transformation=arcproc.attributes.update_by_function
+        )
+    else:
+        func = partial(arcproc.attributes.update_by_function, dataset_path=dataset)
+    for name in field_names:
+        func(field_name=name, function=function, **kwargs)
