@@ -21,10 +21,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # import arcproc  # Imported locally to avoid slow imports.
-from .communicate import extract_email_addresses, send_email_smtp
-from .filesystem import create_folder
-from .misc import sql_server_odbc_string
-from .value import datetime_from_string
+from .communicate import (  # pylint: disable=relative-beyond-top-level
+    extract_email_addresses,
+    send_email_smtp,
+)
+from .filesystem import create_folder  # pylint: disable=relative-beyond-top-level
+from .misc import sql_server_odbc_string  # pylint: disable=relative-beyond-top-level
+from .value import datetime_from_string  # pylint: disable=relative-beyond-top-level
 
 # Py2.
 if sys.version_info.major >= 3:
