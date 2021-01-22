@@ -125,7 +125,9 @@ def feature_key(*id_values):
     Returns:
         str
     """
-    return concatenate(*id_values, separator=" | ", nonetype_replacement="")
+    return clean_whitespace(
+        concatenate(*id_values, separator=" | ", nonetype_replacement="")
+    )
 
 
 def feature_key_hash(*id_values):
