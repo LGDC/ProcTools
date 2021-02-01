@@ -41,7 +41,7 @@ def clean_whitespace(value, clear_empty_string=True):
     Returns
         str: Altered value.
     """
-    if value is not None:
+    if isinstance(value, basestring):
         value = value.strip()
         for character in string.whitespace:
             while character * 2 in value:
