@@ -78,8 +78,8 @@ def concatenate(*values, **kwargs):
         separator (str): Character(s) to separate values with. Default is a single
             space " ".
         wrappers (Collection of str): Two string values with which to place before and
-            after each value. For example, ["(", ")"] will wrap values with parentheses.
-            Default is ("", "") - no wrapper.
+            after each value. For example, ("[", "]") will wrap values with square
+            brackets. Default is ("", "") - no wrapper.
         nonetype_replacement (str): Value to replace NoneTypes with (if provided).
 
     Returns:
