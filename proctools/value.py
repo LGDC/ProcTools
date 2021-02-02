@@ -258,6 +258,42 @@ def leading_number_sort_key(numbered_string):
     return (numeric_head, non_numeric_tail)
 
 
+def max_value(*values):
+    """Return maximum value whle handling empty collections & NoneTypes.
+    Args:
+        *values: Variable length argument list.
+
+    Returns:
+        object
+    """
+    if not values:
+        result = None
+    else:
+        try:
+            result = max(values)
+        except TypeError:
+            result = max_value(*(value for value in values if value is not None))
+    return result
+
+
+def min_value(*values):
+    """Return minimum value whle handling empty collections & NoneTypes.
+    Args:
+        *values: Variable length argument list.
+
+    Returns:
+        object
+    """
+    if not values:
+        result = None
+    else:
+        try:
+            result = min(values)
+        except TypeError:
+            result = min_value(*(value for value in values if value is not None))
+    return result
+
+
 def parity(*numbers):
     """Return proper parity description for a collection of integers.
 
