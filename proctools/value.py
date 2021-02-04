@@ -1,4 +1,5 @@
 """Value-building, -deriving, and -cleaning objects."""
+import datetime
 from hashlib import sha256
 import logging
 import string
@@ -98,6 +99,19 @@ def concatenate(*values, **kwargs):
         value.join(wrappers) for value in values_to_concatenate
     )
     return concatenated if concatenated else None
+
+
+def date_as_datetime(value):
+    """Return date or datetime value zero-time datetime.
+
+    Args:
+        value (date, datetime): Value to alter.
+    """
+    if isinstance(value, datetime.datetime):
+        value = value.date()
+    if value:
+        value = datetime.datetime(value.year, value.month, value.day)
+    return value
 
 
 def datetime_from_string(value):
