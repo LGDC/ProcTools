@@ -4,6 +4,7 @@ dropbox
 img2pdf
 jinja2
 more-itertools
+pillow
 pysftp
 python-dateutil
 sqlalchemy
