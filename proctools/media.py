@@ -331,23 +331,23 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
     # `PIL.Image.DecompressionBombError`. Can disable.
     if kwargs.get("disable_max_image_pixels"):
         Image.MAX_IMAGE_PIXELS = None
-    image = Image.open(image_path)
-    try:
-        image.thumbnail(size=(width, height), resample=kwargs["resample"])
-    except IOError:
-        # Attempt again but allow truncated images.
-        # Alternative if necessary: https://stackoverflow.com/a/20068394
-        ImageFile.LOAD_TRUNCATED_IMAGES = True
+    with Image.open(image_path) as image:
         try:
             image.thumbnail(size=(width, height), resample=kwargs["resample"])
         except IOError:
-            LOG.exception("image_path=`%s`", image_path)
-            raise
+            # Attempt again but allow truncated images.
+            # Alternative if necessary: https://stackoverflow.com/a/20068394
+            ImageFile.LOAD_TRUNCATED_IMAGES = True
+            try:
+                image.thumbnail(size=(width, height), resample=kwargs["resample"])
+            except IOError:
+                LOG.exception("image_path=`%s`", image_path)
+                raise
 
-        finally:
-            ImageFile.LOAD_TRUNCATED_IMAGES = False
+            finally:
+                ImageFile.LOAD_TRUNCATED_IMAGES = False
 
-    image.save(output_path, dpi=image.info.get("dpi", fallback_dpi))
+        image.save(output_path, dpi=image.info.get("dpi", fallback_dpi))
     result_key = "converted"
     return result_key
 
