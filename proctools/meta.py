@@ -408,6 +408,36 @@ class Dataset(object):
         for feature in features:
             yield feature
 
+    def attributes_as_values(self, path_tag=None, field_names=None, **kwargs):
+        """Generate feature attribute values.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            path_tag (str): Tag for the path to generate attributes from.
+            field_names (iter): Collection of field names. The order of the names in
+                the collection will determine where its value will fall in the generated
+                item. If value is None, all attributes fields will be used, in
+                `self.field_names` order.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcproc.attributes.as_values`.
+
+        Yields:
+            iter.
+        """
+        import arcproc
+
+        if not field_names:
+            field_names = self.field_names
+        values = arcproc.attributes.as_values(
+            dataset_path=self.path(path_tag), field_names=field_names, **kwargs
+        )
+        for value in values:
+            yield value
+
     def create(self, path, field_tag=None, spatial_reference_item=None):
         """Create dataset from instance properties.
 
