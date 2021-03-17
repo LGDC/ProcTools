@@ -223,11 +223,16 @@ class Database(object):
     def create_session(self, username=None, password=None, **kwargs):
         """Return SQLAlchemy session instance to database.
 
-        Returns:
-            sqlalchemy.orm.session.Session: Session object connected to the database.
+        Args:
+            username (str): Name of user for credential (optional).
+            password (str): Password for credential (optional).
+            **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
             See keyword args listed for `sql_server_odbc_string` function.
+
+        Returns:
+            sqlalchemy.orm.session.Session
         """
         odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
