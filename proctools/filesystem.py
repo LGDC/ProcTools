@@ -17,7 +17,10 @@ import zipfile
 
 from more_itertools import pairwise
 
-from .misc import elapsed, log_entity_states
+from .misc import (  # pylint: disable=relative-beyond-top-level
+    elapsed,
+    log_entity_states,
+)
 
 
 __all__ = []
@@ -233,6 +236,9 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
 
         if top_level_only and i == 0:
             return
+
+
+folder_filepaths = folder_file_paths
 
 
 def folder_relative_file_paths(folder_path, top_level_only=False, **kwargs):
