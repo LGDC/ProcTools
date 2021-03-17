@@ -7,10 +7,13 @@ import subprocess
 import time
 
 import img2pdf
-from PIL import Image, ImageFile
+from PIL import Image, ImageFile, ImageSequence
 
-from .filesystem import folder_file_paths
-from .misc import elapsed, log_entity_states
+from .filesystem import folder_file_paths  # pylint: disable=relative-beyond-top-level
+from .misc import (  # pylint: disable=relative-beyond-top-level
+    elapsed,
+    log_entity_states,
+)
 
 
 __all__ = []
@@ -212,7 +215,7 @@ def convert_folder_images_to_pdf(
             if suffix.lower() in os.path.basename(image_path).lower():
                 result_key = "skipped"
                 continue
-    
+
         if not result_key:
             output_path = os.path.splitext(image_path)[0] + ".pdf"
             result_key = convert_image_to_pdf2(image_path, output_path, **kwargs)
@@ -345,5 +348,52 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
             ImageFile.LOAD_TRUNCATED_IMAGES = False
 
     image.save(output_path, dpi=image.info.get("dpi", fallback_dpi))
+    result_key = "converted"
+    return result_key
+
+
+def merge_tiffs(image_paths, output_path, **kwargs):
+    """Merge a collection of TIFFs into a single TIFF with multiple frames.
+
+    Args:
+        image_paths (str): Ordered collection of paths to TIFF image files to merge.
+        output_path (str): Path for PDF to be created at.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        overwrite_older_only (bool): If output image already exists, will only overwrite
+            if modified date is older than at least one source file. Default is `False`.
+        disable_max_image_pixels: If True the underlying library maximum number of
+            pixels an image can have to be processed. Default is `False`.
+
+    Returns:
+        str: Result key--"created", "failed to create", or "no creation necessary".
+    """
+    if any(
+        os.path.splitext(image_path)[1].lower() not in [".tif", ".tiff"]
+        for image_path in image_paths
+    ):
+        raise ValueError("Images must have TIFF file extension.")
+
+    if kwargs.get("overwrite_older_only", True) and os.path.exists(output_path):
+        if all(
+            os.path.getmtime(output_path) > os.path.getmtime(image_path)
+            for image_path in image_paths
+        ):
+            return "no conversion necessary"
+
+    if kwargs.get("disable_max_image_pixels"):
+        Image.MAX_IMAGE_PIXELS = None
+    frames = []
+    for image_path in image_paths:
+        with Image.open(image_path) as image:
+            for i, frame in enumerate(ImageSequence.Iterator(image), start=1):
+                try:
+                    frames.append(frame.copy())
+                except OverflowError:
+                    LOG.error("Frame %s of %s corrupted or too large", i, image_path)
+                    raise
+
+    frames[0].save(output_path, save_all=True, append_images=frames[1:])
     result_key = "converted"
     return result_key
