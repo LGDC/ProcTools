@@ -397,7 +397,7 @@ class Dataset(object):
 
         if not field_names:
             field_names = self.field_names
-        features = arcproc.attributes.as_dicts(
+        features = arcproc.attributes.as_iters(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
