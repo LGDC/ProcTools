@@ -3,6 +3,7 @@ from collections import Counter
 import datetime
 import logging
 import os
+import shutil
 import subprocess
 import time
 
@@ -46,6 +47,55 @@ IMAGE2PDF_PATH = os.path.join(
     "resources\\apps\\Image2PDF\\image2pdf.exe -r EUIEUFBFYUOQVPAT",
 )
 """str: Path to Image2PDF command-line app."""
+
+
+def clean_folder_pdfs(folder_path, top_level_only=False, **kwargs):
+    """Clean PDF files in folder of scripting.
+
+    Args:
+        folder_path (str): Path to folder.
+        top_level_only (bool): Only clean files at top-level of folder if True; include
+            subfolders as well if False.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        logger (logging.Logger): Logger to emit loglines to. If not defined will default
+            to submodule logger.
+        log_evaluated_division (int): Division at which to emit a logline about number
+            of files evaluated so far. If not defined or None, will default to not
+            logging evaluated divisions.
+
+    Returns:
+        collections.Counter: Counts for each update result type: "cleaned" or "failed to
+        clean".
+    """
+    start_time = datetime.datetime.now()
+    log = kwargs.get("logger", LOG)
+    log.info("Start: Clean PDFs in folder `%s`.", folder_path)
+    if not os.access(folder_path, os.R_OK):
+        raise OSError("Cannot access `{}`.".format(folder_path))
+
+    states = Counter()
+    source_paths = folder_file_paths(
+        folder_path, top_level_only, file_extensions=[".pdf"]
+    )
+    for i, source_path in enumerate(source_paths, start=1):
+        # result_key = None
+        # if not result_key:
+        root_name, extension = os.path.splitext(os.path.basename(source_path))
+        cleaned_path = root_name + "_cleaned" + extension
+        result_key = clean_pdf(source_path, cleaned_path)
+        states[result_key] += 1
+        if "failed" not in result_key:
+            # Replace original with now-cleaned one.
+            shutil.move(cleaned_path, source_path)
+        if "log_evaluated_division" in kwargs:
+            if i % kwargs["log_evaluated_division"] == 0:
+                log.info("Evaluated {:,} documents.".format(i))
+    log_entity_states("documents", states, log, log_level=logging.INFO)
+    elapsed(start_time, log)
+    log.info("End: Clean.")
+    return states
 
 
 def clean_pdf(source_path, output_path, **kwargs):
