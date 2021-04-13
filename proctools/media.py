@@ -9,6 +9,8 @@ import time
 import img2pdf
 from PIL import Image, ImageFile, ImageSequence
 
+from pdfid_PL import PDFiD as pdfid
+
 from .filesystem import folder_file_paths  # pylint: disable=relative-beyond-top-level
 from .misc import (  # pylint: disable=relative-beyond-top-level
     elapsed,
@@ -44,6 +46,40 @@ IMAGE2PDF_PATH = os.path.join(
     "resources\\apps\\Image2PDF\\image2pdf.exe -r EUIEUFBFYUOQVPAT",
 )
 """str: Path to Image2PDF command-line app."""
+
+
+def clean_pdf(source_path, output_path, **kwargs):
+    """Clean PDF file free of scripting.
+
+    Args:
+        source_path (str): Path to PDF file.
+        output_path (str): Path for cleaned PDF to be created at.
+        **kwargs: Arbitrary keyword arguments. See below.
+
+    Keyword Args:
+        overwrite_older_only (bool): If PDF already exists, will only overwrite if
+            modified date is older than for the source file. Default is `True`.
+
+    Returns:
+        str: Result key--"cleaned", "failed to clean", or "no cleaning necessary".
+    """
+    if os.path.splitext(source_path)[1].lower() != ".pdf":
+        raise ValueError("File must have .pdf extension.")
+
+    if kwargs.get("overwrite_older_only", True) and os.path.exists(output_path):
+        if os.path.getmtime(output_path) > os.path.getmtime(source_path):
+            return "no conversion necessary"
+
+    _, cleaned = pdfid(
+        file=source_path, disarm=True, output_file=output_path, return_cleaned=True,
+    )
+    if cleaned:
+        LOG.warning("`%s` had active content--cleaned.", os.path.basename(source_path))
+        result_key = "cleaned"
+    else:
+        os.remove(output_path)
+        result_key = "failed to clean"
+    return result_key
 
 
 def convert_image_to_pdf(image_path, output_path, error_on_failure=False):
