@@ -226,12 +226,12 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
     Yields:
         str
     """
-    if "file_extensions" in kwargs:
+    if kwargs.get("file_extensions"):
         kwargs["file_extensions"] = {ext.lower() for ext in kwargs["file_extensions"]}
     for i, (_folder_path, _, file_names) in enumerate(os.walk(folder_path)):
         for file_name in file_names:
             ext = os.path.splitext(file_name)[1].lower()
-            if "file_extensions" not in kwargs or ext in kwargs["file_extensions"]:
+            if not kwargs.get("file_extensions") or ext in kwargs["file_extensions"]:
                 yield os.path.join(_folder_path, file_name)
 
         if top_level_only and i == 0:
@@ -421,7 +421,7 @@ def update_replica_folder(folder_path, source_path, top_level_only=False, **kwar
 
     states = Counter()
     relative_source_paths = folder_relative_file_paths(
-        source_path, top_level_only, file_extensions=kwargs["file_extensions"]
+        source_path, top_level_only, file_extensions=kwargs.get("file_extensions")
     )
     for i, relative_path in enumerate(relative_source_paths, start=1):
         source_file_path = os.path.join(source_path, relative_path)
