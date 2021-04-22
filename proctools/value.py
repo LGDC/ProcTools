@@ -126,7 +126,10 @@ def datetime_from_string(value):
     try:
         result = dateutil.parser.parse(value) if value else None
     except ValueError:
-        result = None
+        if "_" in value:
+            result = datetime_from_string(value.replace("_", "-"))
+        else:
+            result = None
     return result
 
 
