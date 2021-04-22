@@ -365,23 +365,37 @@ def update_file(file_path, source_path):
     if not os.path.isfile(source_path):
         raise OSError("Source path {}` is not a file.".format(source_path))
 
-    if same_file(file_path, source_path):
-        result_key = "no update necessary"
+    if os.path.exists(file_path):
+        if same_file(file_path, source_path):
+            result_key = "no update necessary"
+        else:
+            # Make destination file overwriteable.
+            if os.path.exists(file_path):
+                os.chmod(file_path, stat.S_IWRITE)
+            try:
+                shutil.copy2(source_path, file_path)
+            except IOError:
+                result_key = "failed to update"
+            else:
+                result_key = "updated"
     else:
-        # Make destination file overwriteable.
-        if os.path.exists(file_path):
-            os.chmod(file_path, stat.S_IWRITE)
         # Create directory structure (if necessary).
         create_folder(os.path.dirname(file_path), exist_ok=True, create_parents=True)
         try:
             shutil.copy2(source_path, file_path)
         except IOError:
-            result_key = "failed to update"
+            result_key = "failed to create"
         else:
-            os.chmod(file_path, stat.S_IWRITE)
-            result_key = "updated"
-        level = logging.INFO if result_key == "updated" else logging.WARNING
-        LOG.log(level, "%s %s at %s.", source_path, result_key, file_path)
+            result_key = "created"
+    if result_key in ["created", "updated"]:
+        os.chmod(file_path, stat.S_IWRITE)
+    if result_key in ["created", "updated"]:
+        level = logging.INFO
+    elif "failed to" in result_key:
+        level = logging.WARNING
+    else:
+        level = logging.DEBUG
+    LOG.log(level, "%s %s at %s.", source_path, result_key, file_path)
     return result_key
 
 
