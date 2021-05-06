@@ -360,7 +360,8 @@ def update_file(file_path, source_path):
         source_path (str): Path to source file.
 
     Returns:
-        str: Result key--"updated", "failed to update", or "no update necessary".
+        str: Result key--"created", "failed to create", "updated", "failed to update",
+        or "no update necessary".
     """
     if not os.path.isfile(source_path):
         raise OSError("Source path {}` is not a file.".format(source_path))
