@@ -118,10 +118,16 @@ def clean_pdf(source_path, output_path, **kwargs):
         if os.path.getmtime(output_path) > os.path.getmtime(source_path):
             return "no conversion necessary"
 
-    _, cleaned = pdfid(
-        file=source_path, disarm=True, output_file=output_path, return_cleaned=True,
-    )
-    if cleaned:
+    try:
+        _, cleaned = pdfid(
+            file=source_path, disarm=True, output_file=output_path, return_cleaned=True
+        )
+    # I believe this means there is no header with JS in it.
+    except UnboundLocalError:
+        cleaned = None
+    if cleaned is None:
+        result_key = "no scripting to clean"
+    elif cleaned:
         LOG.warning("`%s` had active content--cleaned.", os.path.basename(source_path))
         result_key = "cleaned"
     else:
