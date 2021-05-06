@@ -80,13 +80,11 @@ def clean_folder_pdfs(folder_path, top_level_only=False, **kwargs):
         folder_path, top_level_only, file_extensions=[".pdf"]
     )
     for i, source_path in enumerate(source_paths, start=1):
-        # result_key = None
-        # if not result_key:
         root_name, extension = os.path.splitext(os.path.basename(source_path))
         cleaned_path = root_name + "_cleaned" + extension
         result_key = clean_pdf(source_path, cleaned_path)
         states[result_key] += 1
-        if "failed" not in result_key:
+        if result_key == "cleaned":
             # Replace original with now-cleaned one.
             shutil.move(cleaned_path, source_path)
         if "log_evaluated_division" in kwargs:
