@@ -396,7 +396,7 @@ def update_file(file_path, source_path):
         level = logging.WARNING
     else:
         level = logging.DEBUG
-    LOG.log(level, "%s %s at %s.", file_path, result_key, source_path)
+    LOG.log(level, "%s %s from %s.", file_path, result_key, source_path)
     return result_key
 
 
