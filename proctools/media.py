@@ -29,6 +29,7 @@ IMAGE_FILE_EXTENSIONS = [
     ".dcx",
     ".emf",
     ".gif",
+    ".jp2",
     ".jpg",
     ".jpeg",
     ".pcd",
@@ -47,6 +48,17 @@ IMAGE2PDF_PATH = os.path.join(
     "resources\\apps\\Image2PDF\\image2pdf.exe -r EUIEUFBFYUOQVPAT",
 )
 """str: Path to Image2PDF command-line app."""
+WORLD_FILE_EXTENSIONS = [
+    ".j2w",
+    ".jgw",
+    ".jpgw",
+    ".pgw",
+    ".pngw",
+    ".tfw",
+    ".tifw",
+    ".wld",
+]
+"""list of str: Collection of known image world file extensions."""
 
 
 def clean_folder_pdfs(folder_path, top_level_only=False, **kwargs):
