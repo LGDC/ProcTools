@@ -4,6 +4,7 @@ dropbox
 img2pdf
 jinja2
 more-itertools
+pdfid_PL
 pillow
 pysftp
 python-dateutil
