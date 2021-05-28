@@ -26,7 +26,10 @@ from .communicate import (  # pylint: disable=relative-beyond-top-level
     send_email_smtp,
 )
 from .filesystem import create_folder  # pylint: disable=relative-beyond-top-level
-from .misc import sql_server_odbc_string  # pylint: disable=relative-beyond-top-level
+from .misc import (  # pylint: disable=relative-beyond-top-level
+    elapsed,
+    sql_server_odbc_string,
+)
 from .value import datetime_from_string  # pylint: disable=relative-beyond-top-level
 
 # Py2.
@@ -607,6 +610,7 @@ class Pipeline(object):
     def execute(self):
         """Execute pipeline members."""
         for member in self.members:
+            start_time = datetime.datetime.now()
             if isinstance(member, Job):
                 meta = {
                     "name": member.name,
@@ -636,6 +640,7 @@ class Pipeline(object):
             meta["status"] = 1
             if meta["type"] == "job":
                 member.run_status = meta["status"]
+            elapsed(start_time, log)
             log.info("%s %s.", meta["name"], RUN_STATUS_DESCRIPTION[meta["status"]])
 
 
