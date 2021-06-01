@@ -314,7 +314,7 @@ def min_value(*values):
 def parity(*numbers):
     """Return proper parity description for a collection of integers.
 
-    Parity description can be: "even", "odd", or "mixed".
+    Parity description can be: "Even", "Odd", or "Mixed".
 
     Args:
         *numbers: Collection of numbers.
@@ -326,9 +326,9 @@ def parity(*numbers):
     if not numbers_bitwise:
         result = None
     elif len(numbers_bitwise) == 1:
-        result = {0: "even", 1: "odd"}[numbers_bitwise.pop()]
+        result = {0: "Even", 1: "Odd"}[numbers_bitwise.pop()]
     else:
-        result = "mixed"
+        result = "Mixed"
     return result
 
 
