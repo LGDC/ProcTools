@@ -377,3 +377,19 @@ def same_string_casefold(*values):
             value = unicode(value).upper().lower()
         cmp_values.add(unicodedata.normalize("NFKD", value))
     return len(cmp_values) == 1
+
+
+def truncate_datetime(value):
+    """Return datetime truncated to the day.
+
+    Args:
+        value (datetime.datetime): Value to truncate.
+
+    Returns:
+        datetime.datetime
+    """
+    return (
+        datetime.datetime(value.year, value.month, value.day)
+        if value is not None
+        else None
+    )
