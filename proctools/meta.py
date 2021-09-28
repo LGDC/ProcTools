@@ -579,7 +579,7 @@ class Pipeline(object):
             file_level (int, None): Log level above which to log to file.
         """
         logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
         formatter = logging.Formatter(
             fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
