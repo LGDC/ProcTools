@@ -168,6 +168,24 @@ def create_folder(folder_path, exist_ok=False, create_parents=False):
     return folder_path
 
 
+def date_file_modified(filepath):
+    """Return modified date-time from given filepath.
+
+    Will return None if file does not exist.
+
+    Args:
+        filepath (pathlib.Path): Path to file.
+
+    Returns:
+        datetime.datetime, None
+    """
+    if filepath.is_file():
+        result = datetime.datetime.fromtimestamp(filepath.stat().st_mtime)
+    else:
+        result = None
+    return result
+
+
 def extract_archive(archive_path, extract_path, password=None):
     """Extract files from archive into the extract path.
 
