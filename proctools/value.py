@@ -136,7 +136,7 @@ def datetime_from_string(value):
     return result
 
 
-def feature_key(*id_values, separator=" | "):
+def feature_key(*id_values):
     """Return key value that defines a unique feature.
 
     Args:
@@ -146,7 +146,7 @@ def feature_key(*id_values, separator=" | "):
         str
     """
     return clean_whitespace(
-        concatenate(*id_values, separator=separator, nonetype_replacement="")
+        concatenate(*id_values, separator=" | ", nonetype_replacement="")
     )
 
 
