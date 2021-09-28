@@ -293,13 +293,16 @@ def force_lowercase(dataset, field_names, **kwargs):
         func(field_name=name, function=value.force_lowercase, **kwargs)
 
 
-def force_title_case(dataset, field_names, **kwargs):
+def force_title_case(dataset, field_names, correction_map=None, **kwargs):
     """Force title case in values of fields.
 
     Args:
         dataset (str, arcproc.managers.Procedure): Path to dataset, or Procedure
             instance.
         field_names (iter): Collection of field names to clear.
+        correction_map (dict, None): Mapping of word or other string part with specific
+            output correction to title-casing. Word key must already be in title-cased
+            style (i.e. key = `key.title()`).
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
@@ -314,7 +317,11 @@ def force_title_case(dataset, field_names, **kwargs):
     else:
         func = partial(arcproc.attributes.update_by_function, dataset_path=dataset)
     for name in field_names:
-        func(field_name=name, function=value.force_title_case, **kwargs)
+        func(
+            field_name=name,
+            function=partial(value.force_title_case, correction_map=correction_map),
+            **kwargs,
+        )
 
 
 def force_uppercase(dataset, field_names, **kwargs):

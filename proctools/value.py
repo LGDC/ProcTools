@@ -248,18 +248,68 @@ def force_lowercase(value):
     return value
 
 
-def force_title_case(value):
+def force_title_case(value, correction_map=None):
     """Return value converted to title case.
 
     Args:
-        value (str): Value to alter.
+        value (str, None): Input value.
+        correction_map (dict, None): Mapping of word or other string part with specific
+            output correction to title-casing. Word key must already be in title-cased
+            style (i.e. key = `key.title()`).
 
     Returns:
-        str: Altered value.
+        str
     """
-    if value:
-        value = value.title()
-    return value
+    if not value:
+        return value
+
+    parts = value.title().split()
+    new_value = ""
+    for i, part in enumerate(parts):
+        # Need to strip for custom corrections to work around punctuation.
+        stripped = {"start": "", "end": ""}
+        while any(part.startswith(character) for character in PUNCTUATION):
+            stripped["start"] += part[0]
+            part = part[1:]
+        while any(part.endswith(character) for character in PUNCTUATION):
+            stripped["end"] = part[-1] + stripped["end"]
+            part = part[:-1]
+        # Python capitalizes letters right after an apostrophe. Correct into end-strip.
+        if part.endswith("'S") or part.endswith("’S"):
+            stripped["end"] = "'s" + stripped["end"]
+            part = part[:-2]
+        # Keep certain short words lowercase.
+        if part.lower() in TITLE_CASE_EXCEPTIONS["short_words"]:
+            # Skip for first & last word.
+            if i not in [0, len(parts) - 1]:
+                part = part.lower()
+        elif part.lower() in TITLE_CASE_EXCEPTIONS["latin_acronyms"]:
+            # Skip for first word.
+            if i != 0:
+                part = part.lower()
+        # Keep certain short words uppercase.
+        elif part.upper() in TITLE_CASE_EXCEPTIONS["directional_abbreviations"]:
+            part = part.upper()
+        elif part.upper() in TITLE_CASE_EXCEPTIONS["roman_numerals"]:
+            part = part.upper()
+        # Certain hyphenated compounds lowercase the second word.
+        elif part.lower() in TITLE_CASE_EXCEPTIONS["hyphenated_prefixes"]:
+            part = part[0].upper() + part[1:].lower()
+        # Capitalize letter after "Mc" (names).
+        elif part != "Mc" and part.startswith("Mc"):
+            part = part[:2] + part[2].upper() + part[3:]
+        # Python capitalizes letters right after a number.
+        if part[-3:].lower() in TITLE_CASE_EXCEPTIONS["ordinal_numbers"]:
+            part = part[:-3] + part[-3:].lower()
+        if correction_map:
+            part = correction_map.get(part, part)
+        # Weird edge-case: the initial "A.".
+        if part == "a" and stripped["end"].startswith("."):
+            part = part.upper()
+        # Reattach stripped characters.
+        part = stripped["start"] + part + stripped["end"]
+        new_value += part if i == 0 else " " + part
+    return new_value
 
 
 def force_uppercase(value):
