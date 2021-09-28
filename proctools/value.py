@@ -105,10 +105,13 @@ def date_as_datetime(value):
     """Return date or datetime value zero-time datetime.
 
     Args:
-        value (date, datetime): Value to alter.
+        value (datetime.date, datetime.datetime): Value to alter.
+
+    Returns:
+        datetime.datetime
     """
     if isinstance(value, datetime.datetime):
-        value = value.date()
+        value = datetime.datetime.combine(value.date(), datetime.datetime.min.time())
     if value:
         value = datetime.datetime(value.year, value.month, value.day)
     return value
