@@ -17,6 +17,78 @@ if sys.version_info.major >= 3:
 LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 
+PUNCTUATION = string.punctuation + "–—"
+"""str: Common punctuation characters."""
+TITLE_CASE_EXCEPTIONS = {
+    "directional_abbreviations": ["N", "S", "E", "W", "NE", "NW", "SE", "SW"],
+    # Keep final punctuation off, already stripped in function.
+    "latin_acronyms": ["e.g", "i.e", "etc"],
+    "hyphenated_prefixes": ["at-large"],
+    "ordinal_numbers": [
+        "0th",
+        "1st",
+        "1th",
+        "2nd",
+        "2th",
+        "3rd",
+        "3th",
+        "4th",
+        "5th",
+        "6th",
+        "7th",
+        "8th",
+        "9th",
+    ],
+    "roman_numerals": [
+        "II",
+        "III",
+        "IV",
+        "VI",
+        "VII",
+        "VIII",
+        "IX",
+        "XI",
+        "XII",
+        "XIII",
+        "XIV",
+        "XV",
+        "XVI",
+        "XVII",
+        "XVIII",
+        "XIX",
+    ],
+    "short_words": [
+        # Prepositions.
+        "at",
+        "by",
+        "for",
+        "from",
+        "in",
+        "into",
+        "of",
+        "on",
+        "onto",
+        "over",
+        "to",
+        "with",
+        # Conjunctions.
+        "and",
+        "as",
+        "but",
+        "for",
+        "if",
+        "nor",
+        "or",
+        # Particles.
+        "to",
+        # Articles.
+        "a",
+        "an",
+        "the",
+    ],
+}
+"""dict: Mapping of tag to collections of exceptions in Python title-casing."""
+
 
 def any_in_range(numbers, floor, ceiling):
     """Return True if any of the integers are in given range.
