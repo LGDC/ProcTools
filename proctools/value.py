@@ -162,21 +162,6 @@ def feature_key_hash(*id_values):
     return sha256(feature_key(*id_values).encode()).hexdigest()
 
 
-def force_case(value, case_method_name):
-    """Return value converted to chosen case style.
-
-    Args:
-        value (str): Value to alter.
-        case_method_name (str): Name of the method that converts string to case.
-
-    Returns:
-        str: Altered value.
-    """
-    if value:
-        value = getattr(value, case_method_name.lower())()
-    return value
-
-
 def force_lowercase(value):
     """Return value converted to lowercase.
 
@@ -186,7 +171,9 @@ def force_lowercase(value):
     Returns:
         str: Altered value.
     """
-    return force_case(value, "lower")
+    if value:
+        value = value.lower()
+    return value
 
 
 def force_title_case(value):
@@ -198,7 +185,9 @@ def force_title_case(value):
     Returns:
         str: Altered value.
     """
-    return force_case(value, "title")
+    if value:
+        value = value.title()
+    return value
 
 
 def force_uppercase(value):
@@ -210,7 +199,9 @@ def force_uppercase(value):
     Returns:
         str: Altered value.
     """
-    return force_case(value, "upper")
+    if value:
+        value = value.upper()
+    return value
 
 
 def force_yn(value, default=None):
