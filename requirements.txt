@@ -4,7 +4,8 @@ dropbox
 img2pdf
 jinja2
 more-itertools
-pdfid_PL
+# Currently a local install.
+#pdfid_PL
 pillow
 pysftp
 python-dateutil
