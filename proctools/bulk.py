@@ -1,6 +1,5 @@
 """Bulk-processing objects."""
 from functools import partial
-import os
 
 # import arcproc  # Imported locally to avoid slow imports.
 
@@ -195,78 +194,6 @@ def clear_nonpositive(dataset, field_names, **kwargs):
         func = partial(arcproc.attributes.update_by_function, dataset_path=dataset)
     for name in field_names:
         func(field_name=name, function=val_func, **kwargs)
-
-
-def etl_dataset(output_path, source_path=None, **kwargs):
-    """Run basic ETL for dataset.
-
-    Args:
-        output_path (str): Path of the dataset to load/update.
-        source_path (str): Path of the dataset to extract. If None, will initialize
-            transform dataset with the output path schema.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        etl_name (str): Name to give the ETL operation.
-        extract_where_sql (str): SQL where-clause for extract subselection.
-        field_name_change_map (dict): Mapping of field names to their replacement name.
-        insert_dataset_paths (iter): Collection of dataset paths to insert features
-            from.
-        field_value_transfer_map (dict): Mapping of source to destination field name.
-        clean_whitespace_field_names (iter): Collection of field names to clean their
-            values of excess whitespace.
-        dissolve_field_names (iter): Collection of field names to dissolve features on.
-        new_unique_ids_field_name (iter): Field name to assign unique IDs to.
-        adjust_for_shapefile (bool): Flag to indicate running
-            `arcproc.combo.adjust_for_shapefile` on dataset before loading.
-        xy_tolerance (float, str): Representation of a distance for operations that can
-            interpret a tolerance.
-        use_edit_session (bool): Updates are done in an edit session if True. Default is
-            False.
-
-    Returns:
-        collections.Counter: Counts for each update type.
-    """
-    import arcproc
-
-    with arcproc.managers.Procedure(
-        kwargs.get("etl_name", os.path.basename(output_path))
-    ) as proc:
-        # Init.
-        if source_path:
-            proc.extract(source_path, extract_where_sql=kwargs.get("extract_where_sql"))
-        else:
-            proc.init_schema(output_path)
-        rename_fields(proc, kwargs.get("field_name_change_map", {}))
-        # Insert features.
-        insert_features_from_paths(proc, kwargs.get("insert_dataset_paths", []))
-        # Alter attributes.
-        clean_whitespace(proc, kwargs.get("clean_whitespace_field_names", []))
-        transfer_field_values(proc, kwargs.get("field_value_transfer_map", {}))
-        # Combine features.
-        if kwargs.get("dissolve_field_names"):
-            proc.transform(
-                arcproc.features.dissolve,
-                dissolve_field_names=kwargs["dissolve_field_names"],
-                tolerance=kwargs.get("xy_tolerance"),
-            )
-        # Finalize attributes.
-        if kwargs.get("new_unique_ids_field_name"):
-            proc.transform(
-                arcproc.attributes.update_by_unique_id,
-                field_name=kwargs["new_unique_ids_field_name"],
-            )
-        if kwargs.get("adjust_for_shapefile"):
-            proc.transform(arcproc.combo.adjust_for_shapefile)
-        feature_count = proc.load(
-            output_path, use_edit_session=kwargs.get("use_edit_session", False)
-        )
-        # Loading shapefiles destroys spatial indexes: restore after load.
-        if kwargs.get("adjust_for_shapefile"):
-            arcproc.dataset.add_index(
-                output_path, field_names=["shape"], fail_on_lock_ok=True
-            )
-    return feature_count
 
 
 def force_lowercase(dataset, field_names, **kwargs):
