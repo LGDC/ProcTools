@@ -343,26 +343,6 @@ def rename_fields(dataset, field_name_change_map):
         func(field_name=old_name, new_field_name=new_name)
 
 
-def transfer_field_values(dataset, field_value_transfer_map):
-    """Transfer field valuess using field name transfer map.
-
-    Args:
-        dataset (str, arcproc.managers.Procedure): Path to dataset, or Procedure
-            instance.
-        field_value_transfer_map (dict): Mapping of source to destination field name.
-    """
-    import arcproc
-
-    if isinstance(dataset, arcproc.managers.Procedure):
-        func = partial(
-            dataset.transform, transformation=arcproc.attributes.update_by_field
-        )
-    else:
-        func = partial(arcproc.attributes.update_by_field, dataset_path=dataset)
-    for source_name, destination_name in field_value_transfer_map.items():
-        func(field_name=destination_name, source_field_name=source_name)
-
-
 def update_by_function(dataset, field_names, function, **kwargs):
     """Update given fields by provided function.
 
