@@ -14,6 +14,8 @@ if sys.version_info.major >= 3:
     unicode = str
 
 
+__all__ = []
+
 LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 

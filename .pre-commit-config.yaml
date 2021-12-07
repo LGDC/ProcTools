@@ -10,3 +10,4 @@ repos:
       args:
       - --max-line-length=90
       - --ignore=E203
+      - --ignore=W503

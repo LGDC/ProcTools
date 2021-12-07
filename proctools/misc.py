@@ -19,16 +19,12 @@ def access_odbc_string(database_path):
     """Return ODBC connection string to Microsoft Access database.
 
     Args:
-        database_path (str): Path to Access database.
+        database_path (pathlib.Path, str): Path to Access database.
 
     Returns
         str
     """
-    details = {
-        "database": database_path,
-        "driver": "Microsoft Access Driver (*.mdb, *.accdb)",
-    }
-    return "DRIVER={{{driver}}};DBQ={database}".format(**details)
+    return f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={database_path}"
 
 
 def elapsed(start_time, logger=None, log_level=logging.INFO):

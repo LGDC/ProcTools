@@ -6,6 +6,7 @@ from itertools import chain
 import logging
 from operator import itemgetter
 import os
+from pathlib import Path
 import sqlite3
 import sys
 from types import FunctionType
@@ -20,7 +21,7 @@ from jinja2 import Environment, PackageLoader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# import arcproc  # Imported locally to avoid slow imports.
+import arcproc
 from .communicate import (  # pylint: disable=relative-beyond-top-level
     extract_email_addresses,
     send_email_smtp,
@@ -42,17 +43,20 @@ __all__ = []
 LOG = logging.getLogger(__name__)
 """logging.Logger: Module-level logger."""
 
-PROC_PATH = os.getenv("PROC_PATH", os.path.join(os.getenv("LOCALAPPDATA"), "proc"))
-"""str: Path to folder for processing environment."""
-LOGS_PATH = os.path.join(PROC_PATH, "logs")
-"""str: Path to folder for logging content."""
-RUN_RESULTS_DB_PATH = os.path.join(LOGS_PATH, "Run_Results.sqlite3")
-"""str: Path for execution run-result database."""
+if "PROC_PATH" in os.environ:
+    PROC_PATH = Path(os.environ["PROC_PATH"])
+    """pathlib.Path: Path to folder for processing environment."""
+else:
+    PROC_PATH = Path(os.environ.get("LOCALAPPDATA"), "proc")
+LOGS_PATH = PROC_PATH / "logs"
+"""pathlib.Path: Path to folder for logging content."""
+RUN_RESULTS_DB_PATH = LOGS_PATH / "Run_Results.sqlite3"
+"""pathlib.Path: Path for execution run-result database."""
 RUN_STATUS_DESCRIPTION = {1: "complete", 0: "failed", -1: "incomplete"}
 """dict: Mapping of status code to description."""
 
 
-class Batch(object):
+class Batch:
     """Representation of a batch of processing jobs.
 
     A batch is a group of jobs, generally related by their shared scheduling.
@@ -75,7 +79,7 @@ class Batch(object):
         """int: ID for batch, as found in Batch table."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select id from Batch where name = ?;"
+            sql = "SELECT id FROM Batch WHERE name = ?;"
             cursor.execute(sql, [self.name])
             return cursor.fetchone()[0]
 
@@ -84,7 +88,7 @@ class Batch(object):
         """list of str: Names of the jobs assigned to batch."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select name from Job where batch_id = ?;"
+            sql = "SELECT name FROM Job WHERE batch_id = ?;"
             cursor.execute(sql, [self.id])
             return [name for name, in cursor.fetchall()]
 
@@ -93,7 +97,7 @@ class Batch(object):
         """list of dict: Metadata dictionaries for last job-runs."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select * from Last_Job_Run where batch_id = ?;"
+            sql = "SELECT * FROM Last_Job_Run WHERE batch_id = ?;"
             cursor.execute(sql, [self.id])
             metas = [
                 {column[0]: value for column, value in zip(cursor.description, row)}
@@ -111,13 +115,14 @@ class Batch(object):
         with self._conn:
             cursor = self._conn.cursor()
             sql = """
-                select
-                    notification_to_addresses as 'to_addresses',
-                    notification_copy_addresses as 'copy_addresses',
-                    notification_blind_copy_addresses as 'blind_copy_addresses',
-                    notification_reply_to_addresses as 'reply_to_addresses'
-                from Batch where name = ?
-                limit 1;
+                SELECT
+                    notification_to_addresses AS 'to_addresses',
+                    notification_copy_addresses AS 'copy_addresses',
+                    notification_blind_copy_addresses AS 'blind_copy_addresses',
+                    notification_reply_to_addresses AS 'reply_to_addresses'
+                FROM Batch
+                WHERE name = ?
+                LIMIT 1;
             """
             row = cursor.execute(sql, [self.name]).fetchone()
             if not row:
@@ -131,12 +136,12 @@ class Batch(object):
 
     @property
     def start_times(self):
-        """set of tuples: Collection of tuples containing start & ."""
+        """set of tuples: Collection of tuples containing all last start times."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select start_time from Last_Job_Run where batch_id = ?;"
+            sql = "SELECT start_time FROM Last_Job_Run WHERE batch_id = ?;"
             cursor.execute(sql, [self.id])
-            times = {datetime_from_string(row[0]) for row in cursor}
+            times = {datetime_from_string(start_time) for start_time, in cursor}
             if None in times:
                 times.remove(None)
         return times
@@ -146,7 +151,7 @@ class Batch(object):
         """int: status ID for current batch run."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select status from Last_Job_Run where batch_id = ?;"
+            sql = "SELECT status FROM Last_Job_Run WHERE batch_id = ?;"
             cursor.execute(sql, [self.id])
             return 1 if all(row[0] == 1 for row in cursor) else -1
 
@@ -186,11 +191,11 @@ class Batch(object):
             send_email_smtp(host, from_address, body_type="html", **kwargs)
 
 
-class Database(object):
+class Database:
     """Representation of database information.
 
     Attributes:
-        data_schema_names (set): Collection of data schema names.
+        data_schema_names (set of str): Collection of data schema names.
         host (str): Name & port configuration of the instance host.
         name (str): Name of the database.
     """
@@ -214,9 +219,7 @@ class Database(object):
         self._sqlalchemy = {}
 
     def __repr__(self):
-        return "{}(name={!r}, host={!r})".format(
-            self.__class__.__name__, self.name, self.host
-        )
+        return f"{self.__class__.__name__}(name={self.name!r}, host={self.host!r})"
 
     @property
     def hostname(self):
@@ -239,7 +242,7 @@ class Database(object):
         """
         odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
-            "url", "mssql+pyodbc:///?odbc_connect={}".format(quote_plus(odbc_string)),
+            "url", f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_string)}"
         )
         engine = self._sqlalchemy.setdefault("engine", create_engine(url))
         return self._sqlalchemy.setdefault(
@@ -264,28 +267,39 @@ class Database(object):
         )
 
 
-class Dataset(object):
-    """Representation of dataset information."""
+class Dataset:
+    """Representation of dataset information.
+
+    Attributes:
+        fields (list of dict): Collection of field information dictionaries.
+    """
 
     valid_geometry_types = ["point", "multipoint", "polygon", "polyline"]
 
     @staticmethod
-    def init_tag_property(value):
-        """Initialize a tag-style property mapping.
+    def init_path_mapping(path):
+        """Initialize a tag-style self._path mapping.
 
         Args:
-            value (dict, str): Value to initialize into tag-property.
+            path (pathlib.Path, str, dict): Value to initialize into tag-path.
 
         Returns:
             dict
         """
-        if isinstance(value, dict):
-            return value
+        if isinstance(path, (Path, str)):
+            path_mapping = {None: Path(path)}
+        elif isinstance(path, dict):
+            path_mapping = {}
+            for key, _path in path.items():
+                if isinstance(_path, (Path, str)):
+                    path_mapping[key] = Path(_path)
+                else:
+                    # Only other option is iterable.
+                    path_mapping[key] = [Path(_path_element) for _path_element in _path]
+        else:
+            raise TypeError("Invalid type for tag property")
 
-        if isinstance(value, basestring):
-            return {None: value}
-
-        raise TypeError("Invalid type for tag property.")
+        return path_mapping
 
     def __init__(self, fields, geometry_type=None, path=None):
         """Initialize instance.
@@ -293,12 +307,12 @@ class Dataset(object):
         Args:
             fields (iter): Collection of field information dictionaries.
             geometry_type (str, None): Type of geometry. NoneType indicates nonspatial.
-            path (dict, str): Path or tagged mapping of paths.
+            path (pathlib.Path, str, dict): Path or tagged mapping of paths.
         """
         self._geometry_type = None
         self.geometry_type = geometry_type
         self.fields = list(fields)
-        self._path = self.init_tag_property(path)
+        self._path = self.init_path_mapping(path)
 
     @property
     def field_names(self):
@@ -325,7 +339,7 @@ class Dataset(object):
     @property
     def id_fields(self):
         """list of dict: Dataset identifier field info dictionaries."""
-        return [field for field in self.fields if field["is_id"]]
+        return [field for field in self.fields if field.get("is_id")]
 
     @property
     def tag_field_names(self):
@@ -373,8 +387,6 @@ class Dataset(object):
         Yields:
             dict.
         """
-        import arcproc
-
         features = arcproc.attributes.as_dicts(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
@@ -401,8 +413,6 @@ class Dataset(object):
         Yields:
             iter.
         """
-        import arcproc
-
         if not field_names:
             field_names = self.field_names
         features = arcproc.attributes.as_iters(
@@ -431,8 +441,6 @@ class Dataset(object):
         Yields:
             iter.
         """
-        import arcproc
-
         if not field_names:
             field_names = self.field_names
         values = arcproc.attributes.as_values(
@@ -445,19 +453,17 @@ class Dataset(object):
         """Create dataset from instance properties.
 
         Args:
-            path (str): Path for dataset to create.
+            path (pathlib.Path, str): Path tag or path for dataset to create.
             field_tag (str, None): Tag for fields to add to created dataset. If None,
                 all fields listed in self.fields will be added.
             spatial_reference_item (object): Object with which to define the spatial
                 reference from. If None, dataset created will be nonspatial.
 
         Returns:
-            str: Path of dataset created.
+            pathlib.Path: Path of dataset created.
         """
-        import arcproc
-
         # Check for path in path-tags; otherwise assume path is literal.
-        dataset_path = self._path.get(path, path)
+        dataset_path = Path(self._path.get(path, path))
         field_metadata_list = (
             [field for field in self.fields if field_tag in field["tags"]]
             if field_tag
@@ -481,15 +487,15 @@ class Dataset(object):
             str: Path of dataset with given tag.
         """
         if tag not in self._path:
-            raise AttributeError("{!r} path-tag does not exist.".format(tag))
+            raise AttributeError(f"{tag!r} path-tag does not exist")
 
         return self._path[tag]
 
 
-class Job(object):
+class Job:
     """Representation of pipeline processing job.
 
-    A job is an named &ordered sequence of processes to execute in a pipeline.
+    A job is an named & ordered sequence of processes to execute in a pipeline.
 
     Attributes:
         name (str): Name of the job.
@@ -517,7 +523,7 @@ class Job(object):
         """int: ID for job, as found in Job table."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select id from Job where name = ?;"
+            sql = "SELECT id FROM Job WHERE name = ?;"
             cursor.execute(sql, [self.name])
             return cursor.fetchone()[0]
 
@@ -532,37 +538,37 @@ class Job(object):
 
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "select status from Job_Run where id = ?;"
+            sql = "SELECT status FROM Job_Run WHERE id = ?;"
             cursor.execute(sql, [self.run_id])
             return cursor.fetchone()[0]
 
     @run_status.setter
     def run_status(self, value):
         if value not in RUN_STATUS_DESCRIPTION:
-            raise ValueError("{} not a valid status code.".format(value))
+            raise ValueError(f"{value} not a valid status code")
 
         if self.run_id is None:
             start_time = datetime.datetime.now().isoformat(" ")
             with self._conn:
                 sql = """
-                    insert into Job_Run(status, job_id, start_time) values (?, ?, ?);
+                    INSERT INTO Job_Run(status, job_id, start_time) VALUES (?, ?, ?);
                 """
                 self._conn.execute(sql, [value, self.id, start_time])
             with self._conn:
                 cursor = self._conn.cursor()
-                sql = "select id from Job_Run where job_id = ? and start_time = ?;"
+                sql = "SELECT id FROM Job_Run WHERE job_id = ? AND start_time = ?;"
                 cursor.execute(sql, [self.id, start_time])
                 self.run_id = cursor.fetchone()[0]
         else:
             end_time = None if value == -1 else datetime.datetime.now().isoformat(" ")
             with self._conn:
                 sql = """
-                    update Job_Run set status = ?, end_time = ? where id = ?;
+                    UPDATE Job_Run SET status = ?, end_time = ? WHERE id = ?;
                 """
                 self._conn.execute(sql, [value, end_time, self.run_id])
 
 
-class Pipeline(object):
+class Pipeline:
     """Representation of an processing pipeline.
 
     Attributes:
@@ -590,9 +596,9 @@ class Pipeline(object):
         console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        create_folder(LOGS_PATH, exist_ok=True, create_parents=True)
+        create_folder(LOGS_PATH, create_parents=True, exist_ok=True)
         file_handler = logging.FileHandler(
-            filename=os.path.join(LOGS_PATH, member_name + ".log"), mode=file_mode
+            filename=LOGS_PATH / (member_name + ".log"), mode=file_mode
         )
         file_handler.setLevel(file_level if file_level else logging.INFO)
         file_handler.setFormatter(formatter)
@@ -626,7 +632,7 @@ class Pipeline(object):
                     "procedures": [member],
                 }
             else:
-                raise ValueError("Invalid pipeline member type.")
+                raise ValueError("Invalid pipeline member type")
 
             log = self.init_logger(meta["name"], file_mode="w", file_level=10)
             log.info("Starting %s: %s.", meta["type"], meta["name"])
@@ -634,7 +640,7 @@ class Pipeline(object):
                 try:
                     procedure()
                 except Exception:
-                    log.exception("Unhandled exception.")
+                    log.exception("Unhandled exception")
                     raise
 
             meta["status"] = 1
@@ -647,11 +653,19 @@ class Pipeline(object):
 def dataset_last_change_date(
     dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
 ):
-    """Return date of the last change on dataset with tracking fields."""
-    import arcproc
+    """Return date of the last change on dataset with tracking fields.
 
-    field_names = [init_date_field_name, mod_date_field_name]
-    date_iters = arcproc.attributes.as_iters(dataset_path, field_names)
+    Args:
+        dataset_path (pathlib.Path, str): Path of the dataset.
+        init_date_field_name (str): Name of the initial edit/create date field.
+        mod_date_field_name (str): Name of the last edit/modification date field.
+
+    Returns:
+
+    """
+    date_iters = arcproc.attributes.as_iters(
+        dataset_path, field_names=[init_date_field_name, mod_date_field_name]
+    )
     dates = set(chain.from_iterable(date_iters))
     # datetimes cannot compare to NoneTypes.
     if None in dates:
