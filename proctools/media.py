@@ -471,7 +471,7 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
 
     if kwargs["overwrite_older_only"] and output_path.exists():
         if output_path.stat().st_mtime > image_path.stat().st_mtime:
-            return "no conversion necessary"
+            return "no creation necessary"
 
     # img2pdf uses Pillow, which will error out if the image in question exceeds
     # MAX_IMAGE_PIXELS with `PIL.Image.DecompressionBombError`. Can disable.
@@ -495,7 +495,7 @@ def create_image_thumbnail(image_path, output_path, width, height, **kwargs):
                 ImageFile.LOAD_TRUNCATED_IMAGES = False
 
         image.save(output_path, dpi=image.info.get("dpi", fallback_dpi))
-    result = "converted"
+    result = "created"
     return result
 
 
