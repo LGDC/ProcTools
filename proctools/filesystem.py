@@ -241,7 +241,7 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
 
         elif (
             not kwargs.get("file_extensions")
-            or child_path.suffix in kwargs["file_extensions"]
+            or child_path.suffix.lower() in kwargs["file_extensions"]
         ):
             yield child_path
 
