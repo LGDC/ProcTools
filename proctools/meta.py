@@ -1,5 +1,6 @@
 """Metadata objects."""
 from collections import defaultdict
+from dataclasses import asdict, dataclass, field
 import datetime
 from functools import partial
 from itertools import chain
@@ -8,20 +9,17 @@ from operator import itemgetter
 import os
 from pathlib import Path
 import sqlite3
-import sys
 from types import FunctionType
-
-try:
-    from urllib.parse import quote_plus
-except ImportError:
-    # Py2.
-    from urllib import quote_plus
+from typing import Any, Iterable, Iterator, Optional, Union
+from urllib.parse import quote_plus
 
 from jinja2 import Environment, PackageLoader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import arcproc
+import arcpy
+
 from .communicate import (  # pylint: disable=relative-beyond-top-level
     extract_email_addresses,
     send_email_smtp,
@@ -32,10 +30,6 @@ from .misc import (  # pylint: disable=relative-beyond-top-level
     sql_server_odbc_string,
 )
 from .value import datetime_from_string  # pylint: disable=relative-beyond-top-level
-
-# Py2.
-if sys.version_info.major >= 3:
-    basestring = str  # pylint: disable=invalid-name
 
 
 __all__ = []
@@ -345,18 +339,18 @@ class Dataset:
     def tag_field_names(self):
         """dict: Mapping of field tag to names of fields so-tagged."""
         _tag_field_names = defaultdict(list)
-        for field in self.fields:
-            for tag in field.get("tags", []):
-                _tag_field_names[tag].append(field["name"])
+        for _field in self.fields:
+            for tag in _field.get("tags", []):
+                _tag_field_names[tag].append(_field["name"])
         return dict(_tag_field_names)
 
     @property
     def tag_fields(self):
         """dict: Mapping of field tag to info dictionaries of field so-tagged."""
         _tag_fields = defaultdict(list)
-        for field in self.fields:
-            for tag in field.get("tags", []):
-                _tag_fields[tag].append(field)
+        for _field in self.fields:
+            for tag in _field.get("tags", []):
+                _tag_fields[tag].append(_field)
         return dict(_tag_fields)
 
     def add_path(self, tag, path):
@@ -490,6 +484,212 @@ class Dataset:
             raise AttributeError(f"{tag!r} path-tag does not exist")
 
         return self._path[tag]
+
+
+@dataclass
+class Field:
+    """Representation of field information."""
+
+    name: str
+    """Name of the field."""
+    type: str = "String"
+    """Field type (case insensitve). See valid_types property for possible values. """
+    length: int = 32
+    "String field length."
+    precision: int = 0
+    "Single- or double-float field precision."
+    scale: int = 0
+    "Single- or double-float field scale."
+    is_nullable: bool = True
+    """Field is nullable if True."""
+    required: bool = False
+    """Field value is required if True."""
+    alias_name: Optional[str] = None
+    "Optional alias name of the field."
+    default_value: Any = None
+    """Default value for field on new feature."""
+
+    is_id: bool = False
+    """Field is part of the feature identifier if True."""
+    not_in_source: bool = False
+    """Field does not reside in source dataset(s) if True."""
+    source_only: bool = False
+    """Field resides on the source dataset(s) only if True."""
+
+
+@dataclass
+class Dataset2:
+    """Representation of dataset information."""
+
+    fields: "list[Field]" = field(default_factory=list)
+    """List of field information objects."""
+    geometry_type: Optional[str] = None
+    """Type of geometry. NoneType indicates nonspatial."""
+    path: Optional[Path] = None
+    """Path to dataset."""
+    source_path: Optional[Path] = None
+    "Path to source dataset."
+    source_paths: Optional["list[Path]"] = field(default_factory=list)
+    "Paths to source dataset."
+
+    @property
+    def field_names(self) -> "list[str]":
+        """Dataset field names."""
+        return [field.name for field in self.fields]
+
+    @property
+    def id_field(self) -> Field:
+        """Dataset identifier field. Will be NoneType if no single ID field."""
+        return self.id_fields[0] if len(self.id_fields) == 1 else None
+
+    @property
+    def id_field_name(self) -> str:
+        """Dataset identifier field names. Will be NoneType if no single ID field."""
+        return self.id_field_names[0] if len(self.id_field_names) == 1 else None
+
+    @property
+    def id_field_names(self) -> "list[str]":
+        """Dataset identifier field names."""
+        return [field.name for field in self.id_fields]
+
+    @property
+    def id_fields(self) -> "list[Field]":
+        """Dataset identifier field information objects."""
+        return [field for field in self.fields if field.is_id]
+
+    @property
+    def out_field_names(self) -> "list[str]":
+        """Output dataset field names."""
+        return [field.name for field in self.out_fields]
+
+    @property
+    def out_fields(self) -> "list[Field]":
+        """Output dataset field information objects."""
+        return [field for field in self.fields if not field.source_only]
+
+    @property
+    def source_field_names(self) -> "list[str]":
+        """Source dataset field names."""
+        return [field.name for field in self.source_fields]
+
+    @property
+    def source_fields(self) -> "list[Field]":
+        """Source dataset field information objects."""
+        return [
+            field
+            for field in self.fields
+            if field.source_only or not field.not_in_source
+        ]
+
+    def __fspath__(self) -> str:
+        return str(self.path)
+
+    def as_feature_set(
+        self, field_names: Iterable[str], from_source: bool = False, **kwargs
+    ) -> Union[arcpy.FeatureSet, arcpy.RecordSet]:
+        """Return feature or record set dataset features.
+
+        Args:
+            field_names: Collection of field names.
+            from_source: Get from source dataset if True.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcproc.dataset.as_feature_set`.
+        """
+        dataset_path = self.source_path if from_source else self.path
+        return arcproc.dataset.as_feature_set(dataset_path, field_names, **kwargs)
+
+    def attributes_as_dicts(
+        self, field_names: Iterable[str], from_source: bool = False, **kwargs
+    ) -> Iterator[dict]:
+        """Generate mappings of feature attribute name to value.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            field_names: Collection of field names. Names will be the keys in the
+                dictionary mapping.
+            from_source: Get from source dataset if True.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcproc.attributes.as_dicts`.
+        """
+        dataset_path = self.source_path if from_source else self.path
+        yield from arcproc.attributes.as_dicts(dataset_path, field_names, **kwargs)
+
+    def attributes_as_tuples(
+        self, field_names: Iterable[str], from_source: bool = False, **kwargs
+    ) -> Iterator[tuple]:
+        """Generate tuples of feature attribute values.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            field_names: Collection of field names. The order of the names in the
+                collection will determine where its value will fall in the generated
+                tuple.
+            from_source: Get from source dataset if True.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcproc.attributes.as_iters`.
+        """
+        dataset_path = self.source_path if from_source else self.path
+        yield from arcproc.attributes.as_iters(dataset_path, field_names, **kwargs)
+
+    def attributes_as_values(
+        self, field_names: Iterable[str], from_source: bool = False, **kwargs
+    ) -> Iterator:
+        """Generate feature attribute values.
+
+        Notes:
+            Use ArcPy cursor token names for object IDs and geometry objects/properties.
+
+        Args:
+            field_names: Collection of field names. The order of the names in the
+                collection will determine where its value will fall in the generated
+                tuple.
+            from_source: Get from source dataset if True.
+            **kwargs: Arbitrary keyword arguments. See below.
+
+        Keyword Args:
+            Refer to Keyword Args for `arcproc.attributes.as_values`.
+        """
+        dataset_path = self.source_path if from_source else self.path
+        yield from arcproc.attributes.as_values(dataset_path, field_names, **kwargs)
+
+    def create(
+        self,
+        create_source: bool = False,
+        override_path: Optional[Path] = None,
+        spatial_reference_wkid: Optional[int] = None,
+    ) -> Path:
+        """Create dataset.
+
+        Args:
+            create_source: Create source version if True.
+            override_path: Path to use instead of assoicated path.
+            spatial_reference_wkid: Well-known ID for the spatial reference to apply. If
+                None, dataset created will be nonspatial.
+        """
+        dataset_path = self.source_path if create_source else self.path
+        dataset_path = override_path if override_path else dataset_path
+        field_metadata_list = [
+            asdict(field)
+            for field in self.fields
+            if (create_source and not field.not_in_source)
+            or (not create_source and not field.source_only)
+        ]
+        return arcproc.dataset.create(
+            dataset_path,
+            field_metadata_list,
+            geometry_type=self.geometry_type,
+            spatial_reference_item=spatial_reference_wkid,
+        )
 
 
 class Job:
