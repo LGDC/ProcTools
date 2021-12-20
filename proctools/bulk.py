@@ -1,35 +1,46 @@
 """Bulk-processing objects."""
+from dataclasses import asdict
 from functools import partial
 
 import arcproc
 
+from .meta import Dataset2, Field  # pylint: disable=relative-beyond-top-level
 from . import value  # pylint: disable=relative-beyond-top-level
 
 
 __all__ = []
 
 
-def add_missing_fields(dataset, dataset_metadata, tags=None):
+def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
     """Add missing fields listed in dataset meta object.
 
     Args:
         dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
             Procedure instance.
-        dataset_metadata (proctools.meta.Dataset)
+        dataset_metadata (proctools.meta.Dataset, proctools.meta.Dataset2)
         tags (iter, None): Collection of tags a field must have one of in metadata for
             field to be added. If tags is None, all fields listed in metadata are added.
+        from_source (bool): Add fields from source dataset if True.
     """
-    if tags:
+    if isinstance(dataset_metadata, Dataset2):
         fields = (
+            dataset_metadata.source_fields
+            if from_source
+            else dataset_metadata.out_fields
+        )
+    elif tags:
+        fields = [
             field
             for field in dataset_metadata.fields
             if set(field.get("tags")) & set(tags)
-        )
+        ]
     else:
         fields = dataset_metadata.fields
     if isinstance(dataset, arcproc.managers.Procedure):
         proc = dataset
         for field in fields:
+            if isinstance(field, Field):
+                field = asdict(field)
             proc.transform(arcproc.dataset.add_field, exist_ok=True, **field)
     else:
         dataset_path = dataset
