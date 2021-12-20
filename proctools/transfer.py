@@ -83,7 +83,6 @@ def dropbox_upload_file(source_path, destination_path, app_token, **kwargs):
         destination_path = PurePosixPath("/", destination_path)
     file_size = source_path.stat().st_size
     kwargs.setdefault("chunk_size", min(file_size + 1, 134_217_728))
-    LOG.info("Uploading %s to Dropbox.", source_path)
     commit_kwargs = {
         # dropbox v10.10.0: Convert to str.
         "path": str(destination_path),
@@ -140,7 +139,6 @@ def ftp_upload_file(source_path, destination_path, host, **kwargs):
     kwargs.setdefault("port", 21)
     kwargs.setdefault("username")
     kwargs.setdefault("password")
-    LOG.info("Uploading `%s` to FTP site at %s.", source_path, host)
     try:
         ftp = ftplib.FTP(host="")
         ftp.connect(host, port=kwargs["port"])
@@ -151,7 +149,6 @@ def ftp_upload_file(source_path, destination_path, host, **kwargs):
             ftp.storbinary(cmd=f"STOR {destination_path.name}", fp=file)
     finally:
         ftp.quit()
-    LOG.info("`%s` uploaded to `%s%s`.", source_path, host, destination_path)
     return destination_path
 
 
@@ -181,7 +178,6 @@ def secure_ftp_upload_file(source_path, destination_path, host, **kwargs):
     kwargs.setdefault("username")
     kwargs.setdefault("password")
     kwargs.setdefault("private_key")
-    LOG.info("Uploading `%s` to Secure FTP site at %s.", source_path, host)
     connection_options = pysftp.CnOpts()
     # Yeah, this is not great, but not that worried about MitM in our cases.
     connection_options.hostkeys = None
@@ -190,5 +186,4 @@ def secure_ftp_upload_file(source_path, destination_path, host, **kwargs):
         sftp.put(
             localpath=source_path, remotepath=destination_path, preserve_mtime=True
         )
-    LOG.info("`%s` uploaded to `%s`.", source_path, host + destination_path)
     return destination_path

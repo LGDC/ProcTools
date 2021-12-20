@@ -63,7 +63,6 @@ class NetUse(ContextDecorator):
 
     def connect(self):
         """Connects the UNC directory."""
-        LOG.info("Connecting UNC path %s.", self.path)
         # UNC WindowsPath objects keep trailing slash - not compatible with net use.
         string_path = str(self.path).rstrip("\\")
         call_string = f"""net use "{string_path}\""""
@@ -75,7 +74,6 @@ class NetUse(ContextDecorator):
 
     def disconnect(self):
         """Disconnects the UNC directory."""
-        LOG.info("Disconnecting UNC path %s.", self.path)
         call_string = f"""net use "{self.path}" /delete /yes"""
         try:
             subprocess.check_call(call_string)
@@ -106,7 +104,6 @@ def archive_folder(folder_path, archive_path, include_base_folder=False, **kwarg
     archive_path = Path(archive_path)
     kwargs.setdefault("archive_exclude_patterns", [])
     kwargs.setdefault("encrypt_password")
-    LOG.info("Start: Create archive of folder `%s`.", folder_path)
     with ZipFile(archive_path, mode="w", compression=ZIP_DEFLATED) as archive:
         for filepath in folder_filepaths(folder_path):
             if any(
@@ -128,7 +125,6 @@ def archive_folder(folder_path, archive_path, include_base_folder=False, **kwarg
         )
         archive_path.unlink()
         encrypted_path.rename(archive_path)
-    LOG.info("End: Create.")
     return archive_path
 
 
