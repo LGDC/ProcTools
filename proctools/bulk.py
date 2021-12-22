@@ -70,7 +70,7 @@ def clean_all_whitespace(dataset, **kwargs):
         dataset_path = dataset
         user_fields = arcproc.dataset.dataset_metadata(dataset_path)["user_fields"]
     for field in user_fields:
-        if field["type"].upper() == "TEXT":
+        if field["type"].upper() in ("STRING", "TEXT"):
             update_by_function(
                 dataset,
                 field_names=[field["name"]],
