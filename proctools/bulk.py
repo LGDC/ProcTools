@@ -45,6 +45,7 @@ def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
     else:
         dataset_path = dataset
         for field in fields:
+            field = asdict(field)
             arcproc.dataset.add_field(dataset_path, exist_ok=True, **field)
 
 
