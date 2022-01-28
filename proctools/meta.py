@@ -387,7 +387,7 @@ class Dataset:
         for feature in features:
             yield feature
 
-    def attributes_as_iters(self, path_tag=None, field_names=None, **kwargs):
+    def attributes_as_tuples(self, path_tag=None, field_names=None, **kwargs):
         """Generate iterables of feature attribute values.
 
         Notes:
@@ -402,14 +402,14 @@ class Dataset:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_iters`.
+            Refer to Keyword Args for `arcproc.attributes.as_tuples`.
 
         Yields:
             iter.
         """
         if not field_names:
             field_names = self.field_names
-        features = arcproc.attributes.as_iters(
+        features = arcproc.attributes.as_tuples(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
@@ -636,10 +636,10 @@ class Dataset2:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_iters`.
+            Refer to Keyword Args for `arcproc.attributes.as_tuples`.
         """
         dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.attributes.as_iters(dataset_path, field_names, **kwargs)
+        yield from arcproc.attributes.as_tuples(dataset_path, field_names, **kwargs)
 
     def attributes_as_values(
         self, field_names: Iterable[str], from_source: bool = False, **kwargs
@@ -863,7 +863,7 @@ def dataset_last_change_date(
     Returns:
 
     """
-    date_iters = arcproc.attributes.as_iters(
+    date_iters = arcproc.attributes.as_tuples(
         dataset_path, field_names=[init_date_field_name, mod_date_field_name]
     )
     dates = set(chain.from_iterable(date_iters))
