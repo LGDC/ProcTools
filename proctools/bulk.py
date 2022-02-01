@@ -1,6 +1,10 @@
 """Bulk-processing objects."""
 from dataclasses import asdict
+import datetime
 from functools import partial
+import logging
+from pathlib import Path
+from typing import Any, Iterable, Optional, Union
 
 import arcproc
 
@@ -9,6 +13,10 @@ from . import value  # pylint: disable=relative-beyond-top-level
 
 
 __all__ = []
+
+
+LOG: logging.Logger = logging.getLogger(__name__)
+"""Module-level logger."""
 
 
 def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
@@ -369,6 +377,90 @@ def rename_fields(dataset, field_name_change_map):
         dataset_path = dataset
         for field_name, new_field_name in field_name_change_map.items():
             arcproc.dataset.rename_field(dataset_path, field_name, new_field_name)
+
+
+def replace_all_null_values(
+    dataset: Union[Path, str, arcproc.managers.Procedure],
+    date_replacement: datetime.date = datetime.date.min,
+    integer_replacement: int = 0,
+    float_replacement: float = 0.0,
+    string_replacement: str = "",
+    *,
+    dataset_where_sql: Optional[str] = None,
+    use_edit_session: bool = False,
+):
+    """Replace NULL values in the all user fields.
+
+    Args:
+        dataset: Path to the dataset, or Procedure instance with transform dataset.
+        date_replacement: Value to replace NULL-dates with.
+        integer_replacement: Value to replace NULL-integers with.
+        float_replacement: Value to replace NULL-floats with.
+        string_replacement: Value to replace NULL-strings with.
+        dataset_where_sql: SQL where-clause for dataset subselection.
+        use_edit_session: Updates are done in an edit session if True.
+    """
+    type_field_names = {}
+    type_replacement = {"Date": date_replacement, "String": string_replacement}
+    type_replacement["Double"] = type_replacement["Single"] = float_replacement
+    type_replacement["Integer"] = type_replacement["SmallInteger"] = integer_replacement
+    if isinstance(dataset, arcproc.managers.Procedure):
+        fields = arcproc.arcobj.dataset_metadata(dataset.transform_path)["user_fields"]
+    else:
+        fields = arcproc.arcobj.dataset_metadata(dataset)["user_fields"]
+    for field in fields:
+        if field["type"] not in type_field_names:
+            type_field_names[field["type"]] = []
+        type_field_names[field["type"]].append(field["name"])
+    for _type, field_names in sorted(type_field_names.items()):
+        if _type not in type_replacement:
+            LOG.info(
+                "Skipping fields `%s`: %s type not covered by function.",
+                field_names,
+                _type,
+            )
+            continue
+
+        replace_null_values(
+            dataset,
+            field_names,
+            replacement_value=type_replacement[_type],
+            dataset_where_sql=dataset_where_sql,
+            use_edit_session=use_edit_session,
+        )
+
+
+def replace_null_values(
+    dataset: Union[Path, str, arcproc.managers.Procedure],
+    field_names: Iterable[str],
+    replacement_value: Any,
+    *,
+    dataset_where_sql: Optional[str] = None,
+    use_edit_session: bool = False,
+):
+    """Replace NULL values in the given fields.
+
+    Notes:
+        All fields assumed to have the same data type
+
+    Args:
+        dataset: Path to the dataset, or Procedure instance with transform dataset.
+        field_names: Names of the fields.
+        replacement_value: Value to replace NULLs with.
+        dataset_where_sql: SQL where-clause for dataset subselection.
+        use_edit_session: Updates are done in an edit session if True.
+    """
+
+    def replace_null(_value, replacement_value):
+        return replacement_value if _value is None else _value
+
+    update_by_function(
+        dataset,
+        field_names,
+        function=partial(replace_null, replacement_value=replacement_value),
+        dataset_where_sql=dataset_where_sql,
+        use_edit_session=use_edit_session,
+    )
 
 
 def update_by_function(dataset, field_names, function, **kwargs):
