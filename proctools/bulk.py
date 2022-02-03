@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, Union
 
 import arcproc
+from arcproc.metadata import Dataset as _Dataset
 
 from .meta import Dataset2, Field  # pylint: disable=relative-beyond-top-level
 from . import value  # pylint: disable=relative-beyond-top-level
@@ -71,21 +72,17 @@ def clean_all_whitespace(dataset, **kwargs):
     """
     kwargs.setdefault("use_edit_session", False)
     if isinstance(dataset, arcproc.managers.Procedure):
-        proc = dataset
-        user_fields = arcproc.dataset.dataset_metadata(proc.transform_path)[
-            "user_fields"
-        ]
+        fields = _Dataset(dataset.transform_path).user_fields
     else:
-        dataset_path = dataset
-        user_fields = arcproc.dataset.dataset_metadata(dataset_path)["user_fields"]
-    for field in user_fields:
-        if field["type"].upper() in ("STRING", "TEXT"):
+        fields = _Dataset(dataset).user_fields
+    for _field in fields:
+        if _field.type.upper() in ("STRING", "TEXT"):
             update_by_function(
                 dataset,
-                field_names=[field["name"]],
+                field_names=[_field.name],
                 function=(
                     value.clean_whitespace
-                    if field["is_nullable"]
+                    if _field.is_nullable
                     else value.clean_whitespace_without_clear
                 ),
                 use_edit_session=kwargs["use_edit_session"],
@@ -405,9 +402,9 @@ def replace_all_null_values(
     type_replacement["Double"] = type_replacement["Single"] = float_replacement
     type_replacement["Integer"] = type_replacement["SmallInteger"] = integer_replacement
     if isinstance(dataset, arcproc.managers.Procedure):
-        fields = arcproc.arcobj.dataset_metadata(dataset.transform_path)["user_fields"]
+        fields = _Dataset(dataset.transform_path).user_fields
     else:
-        fields = arcproc.arcobj.dataset_metadata(dataset)["user_fields"]
+        fields = _Dataset(dataset).user_fields
     for field in fields:
         if field["type"] not in type_field_names:
             type_field_names[field["type"]] = []
