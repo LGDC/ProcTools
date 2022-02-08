@@ -104,8 +104,8 @@ def clean_folder_pdfs(folder_path, top_level_only=False, **kwargs):
             and i % kwargs["log_evaluated_division"] == 0
         ):
             log.info(f"Evaluated {i:,} documents.")
-    log_entity_states("documents", states, log, log_level=logging.INFO)
-    elapsed(start_time, log)
+    log_entity_states("documents", states, logger=log, log_level=logging.INFO)
+    elapsed(start_time, logger=log)
     log.info("End: Clean.")
     return states
 
@@ -355,8 +355,8 @@ def convert_folder_images_to_pdf(folder_path, top_level_only=False, **kwargs):
             and i % kwargs["log_evaluated_division"] == 0
         ):
             log.info("Evaluated {:,} images.".format(i))
-    log_entity_states("images", states, log, log_level=logging.INFO)
-    elapsed(start_time, log)
+    log_entity_states("images", states, logger=log, log_level=logging.INFO)
+    elapsed(start_time, logger=log)
     log.info("End: Convert.")
     return states
 
@@ -431,8 +431,8 @@ def create_folder_image_thumbnails(
             and i % kwargs["log_evaluated_division"] == 0
         ):
             log.info("Evaluated {:,} images.".format(i))
-    log_entity_states("images", states, log, log_level=logging.INFO)
-    elapsed(start_time, log)
+    log_entity_states("images", states, logger=log, log_level=logging.INFO)
+    elapsed(start_time, logger=log)
     log.info("End: Create.")
     return states
 

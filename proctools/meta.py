@@ -846,7 +846,7 @@ class Pipeline:
             meta["status"] = 1
             if meta["type"] == "job":
                 member.run_status = meta["status"]
-            elapsed(start_time, log)
+            elapsed(start_time, logger=log)
             log.info("%s %s.", meta["name"], RUN_STATUS_DESCRIPTION[meta["status"]])
 
 
