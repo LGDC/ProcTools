@@ -406,9 +406,9 @@ def replace_all_null_values(
     else:
         fields = _Dataset(dataset).user_fields
     for field in fields:
-        if field["type"] not in type_field_names:
-            type_field_names[field["type"]] = []
-        type_field_names[field["type"]].append(field["name"])
+        if field.type not in type_field_names:
+            type_field_names[field.type] = []
+        type_field_names[field.type].append(field.name)
     for _type, field_names in sorted(type_field_names.items()):
         if _type not in type_replacement:
             LOG.info(
