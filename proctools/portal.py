@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 from tempfile import gettempdir
+from time import sleep
 from typing import Optional, Union
 
 from arcgis.gis import GIS, Item
@@ -16,6 +17,50 @@ __all__ = []
 
 LOG: logging.Logger = logging.getLogger(__name__)
 """Module-level logger."""
+
+
+def delete_layer_features(
+    layer: Union[FeatureLayer, Table], delete_where_sql: str = "1 = 1"
+) -> int:
+    """Delete features in a layer or table.
+
+    Args:
+        layer: Feature layer or table to delete feature from.
+        delete_where_sql: SQL where-clause to choose features to delete. Default (1 = 1)
+            will delete all features.
+
+    Returns:
+        Number of features deleted.
+    """
+    if not delete_where_sql:
+        delete_where_sql = "1 = 1"
+    before_delete_count = layer.query(return_count_only=True)
+    try:
+        result = layer.delete_features(
+            where=delete_where_sql, return_delete_results=False
+        )
+    # The API uses a broad exception here - lame. Check message to limit catch.
+    except Exception as error:  # pylint: disable=broad-except
+        if str(error) == "Your request has timed out.\n(Error Code: 504)":
+            LOG.info("Delete request timed out.")
+            check_tries, wait_seconds = 60, 60
+            for i in range(1, check_tries + 1):
+                sleep(wait_seconds)
+                LOG.info("Checking completion: Try %s.", i)
+                if layer.query(return_count_only=True) == 0:
+                    result = {"success": True}
+                    LOG.info("Delete request completed.")
+                    break
+
+            else:
+                raise RuntimeError("Cannot verify delete request completed.") from error
+
+        else:
+            raise
+
+    if not result["success"]:
+        LOG.warning(result)
+    return before_delete_count - layer.query(return_count_only=True)
 
 
 def get_layer(
