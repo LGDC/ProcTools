@@ -20,7 +20,10 @@ LOG: logging.Logger = logging.getLogger(__name__)
 
 
 def delete_layer_features(
-    layer: Union[FeatureLayer, Table], delete_where_sql: str = "1 = 1"
+    layer: Union[FeatureLayer, Table],
+    *,
+    delete_where_sql: str = "1 = 1",
+    rollback_on_failure: bool = True,
 ) -> int:
     """Delete features in a layer or table.
 
@@ -28,6 +31,8 @@ def delete_layer_features(
         layer: Feature layer or table to delete feature from.
         delete_where_sql: SQL where-clause to choose features to delete. Default (1 = 1)
             will delete all features.
+        rollback_on_failure: Deletes should only be applied if all deletes succeed if
+            True.
 
     Returns:
         Number of features deleted.
@@ -37,7 +42,9 @@ def delete_layer_features(
     before_delete_count = layer.query(return_count_only=True)
     try:
         result = layer.delete_features(
-            where=delete_where_sql, return_delete_results=False
+            where=delete_where_sql,
+            return_delete_results=False,
+            rollback_on_failure=rollback_on_failure,
         )
     # The API uses a broad exception here - lame. Check message to limit catch.
     except Exception as error:  # pylint: disable=broad-except
