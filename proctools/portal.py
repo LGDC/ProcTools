@@ -139,7 +139,6 @@ def upload_dataset_as_geodatabase(
     Returns:
         Uploaded file geodatabase item.
     """
-    LOG.info("Start: Upload `%s` as geodatabase to %s.", dataset_path, site.url)
     geodatabase_path = Path(gettempdir(), geodatabase_name)
     arcproc.workspace.create_file_geodatabase(geodatabase_path, log_level=logging.DEBUG)
     dataset_name = dataset_path.name
@@ -165,5 +164,4 @@ def upload_dataset_as_geodatabase(
     )
     # pylint: enable=no-member
     zip_filepath.unlink()
-    LOG.info("End: Upload.")
     return geodatabase
