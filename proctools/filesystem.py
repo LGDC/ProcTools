@@ -232,14 +232,14 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
     if kwargs.get("file_extensions"):
         kwargs["file_extensions"] = {ext.lower() for ext in kwargs["file_extensions"]}
     for child_path in folder_path.iterdir():
-        if child_path.is_dir() and not top_level_only:
+        if child_path.is_file():
+            if (
+                not kwargs.get("file_extensions")
+                or child_path.suffix.lower() in kwargs["file_extensions"]
+            ):
+                yield child_path
+        elif child_path.is_dir() and not top_level_only:
             yield from folder_file_paths(child_path, top_level_only, **kwargs)
-
-        elif (
-            not kwargs.get("file_extensions")
-            or child_path.suffix.lower() in kwargs["file_extensions"]
-        ):
-            yield child_path
 
 
 folder_filepaths = folder_file_paths
