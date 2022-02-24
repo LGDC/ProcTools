@@ -90,7 +90,7 @@ def get_layer(
     collections = [
         collection
         for collection in site.content.search(
-            query, item_type="Feature Layer Collection"
+            query, item_type="Feature Layer Collection", max_items=100
         )
         if collection.title == collection_name
     ]
