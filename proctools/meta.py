@@ -502,9 +502,9 @@ class Field:
     "Single- or double-float field scale."
     is_nullable: bool = True
     """Field is nullable if True."""
-    required: bool = False
+    is_required: bool = False
     """Field value is required if True."""
-    alias_name: Optional[str] = None
+    alias: Optional[str] = None
     "Optional alias name of the field."
     default_value: Any = None
     """Default value for field on new feature."""
