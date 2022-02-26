@@ -145,7 +145,7 @@ def upload_dataset_as_geodatabase(
     if dataset_name.lower().startswith("dbo."):
         dataset_name = dataset_name[4:]
     output_path = geodatabase_path / dataset_name
-    arcproc.dataset.copy(dataset_path, output_path, log_level=logging.DEBUG)
+    arcproc.dataset.copy(dataset_path, output_path=output_path, log_level=logging.DEBUG)
     arcproc.dataset.compress(output_path, log_level=logging.DEBUG)
     zip_filepath = geodatabase_path.with_suffix(".zip")
     archive_folder(

@@ -465,7 +465,7 @@ class Dataset:
         )
         arcproc.dataset.create(
             dataset_path,
-            field_metadata_list,
+            field_metadata_list=field_metadata_list,
             geometry_type=self.geometry_type,
             spatial_reference_item=spatial_reference_item,
         )
@@ -598,7 +598,9 @@ class Dataset2:
             Refer to Keyword Args for `arcproc.dataset.as_feature_set`.
         """
         dataset_path = self.source_path if from_source else self.path
-        return arcproc.dataset.as_feature_set(dataset_path, field_names, **kwargs)
+        return arcproc.dataset.as_feature_set(
+            dataset_path, field_names=field_names, **kwargs
+        )
 
     def attributes_as_dicts(
         self, field_names: Iterable[str], from_source: bool = False, **kwargs
@@ -686,7 +688,7 @@ class Dataset2:
         ]
         return arcproc.dataset.create(
             dataset_path,
-            field_metadata_list,
+            field_metadata_list=field_metadata_list,
             geometry_type=self.geometry_type,
             spatial_reference_item=spatial_reference_wkid,
         )

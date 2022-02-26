@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional, Union
 import arcproc
 from arcproc.metadata import Dataset as _Dataset
 
-from .meta import Dataset2, Field  # pylint: disable=relative-beyond-top-level
+from .meta import Dataset2  # pylint: disable=relative-beyond-top-level
 from . import value  # pylint: disable=relative-beyond-top-level
 
 
@@ -32,11 +32,29 @@ def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
         from_source (bool): Add fields from source dataset if True.
     """
     if isinstance(dataset_metadata, Dataset2):
+        add_field_keys = [
+            "name",
+            "type",
+            "length",
+            "precision",
+            "scale",
+            "is_nullable",
+            "is_required",
+            "alias",
+        ]
         fields = (
             dataset_metadata.source_fields
             if from_source
             else dataset_metadata.out_fields
         )
+        fields = [
+            {
+                key: value
+                for key, value in asdict(field).items()
+                if key in add_field_keys
+            }
+            for field in fields
+        ]
     elif tags:
         fields = [
             field
@@ -48,13 +66,10 @@ def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
     if isinstance(dataset, arcproc.managers.Procedure):
         proc = dataset
         for field in fields:
-            if isinstance(field, Field):
-                field = asdict(field)
             proc.transform(arcproc.dataset.add_field, exist_ok=True, **field)
     else:
         dataset_path = dataset
         for field in fields:
-            field = asdict(field)
             arcproc.dataset.add_field(dataset_path, exist_ok=True, **field)
 
 
@@ -373,7 +388,9 @@ def rename_fields(dataset, field_name_change_map):
     else:
         dataset_path = dataset
         for field_name, new_field_name in field_name_change_map.items():
-            arcproc.dataset.rename_field(dataset_path, field_name, new_field_name)
+            arcproc.dataset.rename_field(
+                dataset_path, field_name=field_name, new_field_name=new_field_name
+            )
 
 
 def replace_all_null_values(
