@@ -376,12 +376,12 @@ class Dataset:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_dicts`.
+            Refer to Keyword Args for `arcproc.features.as_dicts`.
 
         Yields:
             dict.
         """
-        features = arcproc.attributes.as_dicts(
+        features = arcproc.features.as_dicts(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
@@ -402,14 +402,14 @@ class Dataset:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_tuples`.
+            Refer to Keyword Args for `arcproc.features.as_tuples`.
 
         Yields:
             iter.
         """
         if not field_names:
             field_names = self.field_names
-        features = arcproc.attributes.as_tuples(
+        features = arcproc.features.as_tuples(
             dataset_path=self.path(path_tag), field_names=field_names, **kwargs
         )
         for feature in features:
@@ -437,11 +437,10 @@ class Dataset:
         """
         if not field_names:
             field_names = self.field_names
-        values = arcproc.attributes.as_values(
-            dataset_path=self.path(path_tag), field_names=field_names, **kwargs
-        )
-        for value in values:
-            yield value
+        for field_name in field_names:
+            yield from arcproc.attributes.as_values(
+                dataset_path=self.path(path_tag), field_name=field_name, **kwargs
+            )
 
     def create(self, path, field_tag=None, spatial_reference_item=None):
         """Create dataset from instance properties.
@@ -617,10 +616,10 @@ class Dataset2:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_dicts`.
+            Refer to Keyword Args for `arcproc.features.as_dicts`.
         """
         dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.attributes.as_dicts(dataset_path, field_names, **kwargs)
+        yield from arcproc.features.as_dicts(dataset_path, field_names, **kwargs)
 
     def attributes_as_tuples(
         self, field_names: Iterable[str], from_source: bool = False, **kwargs
@@ -638,10 +637,10 @@ class Dataset2:
             **kwargs: Arbitrary keyword arguments. See below.
 
         Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_tuples`.
+            Refer to Keyword Args for `arcproc.features.as_tuples`.
         """
         dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.attributes.as_tuples(dataset_path, field_names, **kwargs)
+        yield from arcproc.features.as_tuples(dataset_path, field_names, **kwargs)
 
     def attributes_as_values(
         self, field_names: Iterable[str], from_source: bool = False, **kwargs
@@ -662,7 +661,10 @@ class Dataset2:
             Refer to Keyword Args for `arcproc.attributes.as_values`.
         """
         dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.attributes.as_values(dataset_path, field_names, **kwargs)
+        for field_name in field_names:
+            yield from arcproc.attributes.as_values(
+                dataset_path, field_name=field_name, **kwargs
+            )
 
     def create(
         self,
@@ -865,7 +867,7 @@ def dataset_last_change_date(
     Returns:
 
     """
-    date_iters = arcproc.attributes.as_tuples(
+    date_iters = arcproc.features.as_tuples(
         dataset_path, field_names=[init_date_field_name, mod_date_field_name]
     )
     dates = set(chain.from_iterable(date_iters))
