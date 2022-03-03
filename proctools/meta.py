@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import sqlite3
 from types import FunctionType
-from typing import Any, Iterable, Iterator, Optional, Union
+from typing import Any, Optional
 from urllib.parse import quote_plus
 
 from jinja2 import Environment, PackageLoader
@@ -17,7 +17,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import arcproc
-import arcpy
 
 from .communicate import (  # pylint: disable=relative-beyond-top-level
     extract_email_addresses,
@@ -357,89 +356,6 @@ class Dataset2:
 
     def __fspath__(self) -> str:
         return str(self.path)
-
-    def as_feature_set(
-        self, field_names: Iterable[str], from_source: bool = False, **kwargs
-    ) -> Union[arcpy.FeatureSet, arcpy.RecordSet]:
-        """Return feature or record set dataset features.
-
-        Args:
-            field_names: Collection of field names.
-            from_source: Get from source dataset if True.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            Refer to Keyword Args for `arcproc.dataset.as_feature_set`.
-        """
-        dataset_path = self.source_path if from_source else self.path
-        return arcproc.dataset.as_feature_set(
-            dataset_path, field_names=field_names, **kwargs
-        )
-
-    def attributes_as_dicts(
-        self, field_names: Iterable[str], from_source: bool = False, **kwargs
-    ) -> Iterator[dict]:
-        """Generate mappings of feature attribute name to value.
-
-        Notes:
-            Use ArcPy cursor token names for object IDs and geometry objects/properties.
-
-        Args:
-            field_names: Collection of field names. Names will be the keys in the
-                dictionary mapping.
-            from_source: Get from source dataset if True.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            Refer to Keyword Args for `arcproc.features.as_dicts`.
-        """
-        dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.features.as_dicts(dataset_path, field_names, **kwargs)
-
-    def attributes_as_tuples(
-        self, field_names: Iterable[str], from_source: bool = False, **kwargs
-    ) -> Iterator[tuple]:
-        """Generate tuples of feature attribute values.
-
-        Notes:
-            Use ArcPy cursor token names for object IDs and geometry objects/properties.
-
-        Args:
-            field_names: Collection of field names. The order of the names in the
-                collection will determine where its value will fall in the generated
-                tuple.
-            from_source: Get from source dataset if True.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            Refer to Keyword Args for `arcproc.features.as_tuples`.
-        """
-        dataset_path = self.source_path if from_source else self.path
-        yield from arcproc.features.as_tuples(dataset_path, field_names, **kwargs)
-
-    def attributes_as_values(
-        self, field_names: Iterable[str], from_source: bool = False, **kwargs
-    ) -> Iterator:
-        """Generate feature attribute values.
-
-        Notes:
-            Use ArcPy cursor token names for object IDs and geometry objects/properties.
-
-        Args:
-            field_names: Collection of field names. The order of the names in the
-                collection will determine where its value will fall in the generated
-                tuple.
-            from_source: Get from source dataset if True.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            Refer to Keyword Args for `arcproc.attributes.as_values`.
-        """
-        dataset_path = self.source_path if from_source else self.path
-        for field_name in field_names:
-            yield from arcproc.attributes.as_values(
-                dataset_path, field_name=field_name, **kwargs
-            )
 
     def create(
         self,
