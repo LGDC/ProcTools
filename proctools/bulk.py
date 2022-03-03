@@ -527,7 +527,7 @@ def update_by_function(dataset, field_names, function, **kwargs):
             arcproc.attributes.update_by_function(
                 dataset_path,
                 field_name,
-                function,
+                function=function,
                 field_as_first_arg=kwargs["field_as_first_arg"],
                 arg_field_names=kwargs["arg_field_names"],
                 kwarg_field_names=kwargs["kwarg_field_names"],
