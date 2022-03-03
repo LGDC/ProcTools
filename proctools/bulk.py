@@ -26,7 +26,7 @@ def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
     Args:
         dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
             Procedure instance.
-        dataset_metadata (proctools.meta.Dataset, proctools.meta.Dataset2)
+        dataset_metadata (proctools.meta.Dataset2)
         tags (iter, None): Collection of tags a field must have one of in metadata for
             field to be added. If tags is None, all fields listed in metadata are added.
         from_source (bool): Add fields from source dataset if True.
