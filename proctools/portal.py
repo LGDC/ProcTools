@@ -1,4 +1,6 @@
 """ArcGIS Online & other portal objects."""
+from collections import Counter
+from datetime import datetime as _datetime
 import logging
 from pathlib import Path
 from tempfile import gettempdir
@@ -11,6 +13,7 @@ from arcgis.features import FeatureLayer, Table
 import arcproc
 
 from proctools.filesystem import archive_folder
+from proctools.misc import log_entity_states
 
 
 __all__ = []
@@ -117,6 +120,57 @@ def get_layer(
             + f" in `{collection_name} collection"
         )
     return layer
+
+
+def load_feature_layer(configuration: dict, site: GIS) -> Counter:
+    """Load the ArcGIS site feature layer corresponding to the source dataset.
+
+    Args:
+        configuration: Configuration details for feature layer.
+        site: API manager object for portal.
+
+    Returns:
+        Counts for each update action.
+    """
+    layer_name = configuration["layer_name"]
+    LOG.info("Start: Load feature layer `%s` on %s.", layer_name, site.url)
+    update_count = Counter()
+    if "update_exception" in configuration:
+        LOG.info(
+            "Layer `%s` not updated. %s", layer_name, configuration["update_exception"]
+        )
+        return update_count
+
+    collection_name = configuration.get("collection_name", layer_name)
+    layer = get_layer(site, layer_name, collection_name)
+    LOG.info("Uploading source dataset...")
+    geodatabase = upload_dataset_as_geodatabase(
+        site,
+        dataset_path=configuration["dataset"].path,
+        geodatabase_name=f"{layer_name}__Temp_{_datetime.now():%Y_%m_%d_T%H%M}.gdb",
+        tags=["Temporary"],
+    )
+    LOG.info("Deleting features...")
+    update_count["deleted"] = layer.query(return_count_only=True)
+    result = layer.manager.truncate()
+    if not result["success"]:
+        raise RuntimeError("Delete failed.")
+
+    LOG.info("Inserting features...")
+    result = layer.append(
+        item_id=geodatabase.id,
+        upload_format="filegdb",
+        source_table_name=layer_name,
+        return_messages=True,
+    )
+    if not result[0]:
+        raise RuntimeError(f"Insert failed - {result[1]}")
+
+    update_count["inserted"] = layer.query(return_count_only=True)
+    geodatabase.delete()
+    log_entity_states("layer features", update_count, logger=LOG)
+    LOG.info("End: Load.")
+    return update_count
 
 
 def upload_dataset_as_geodatabase(
