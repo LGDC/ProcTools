@@ -11,6 +11,7 @@ from arcgis.gis import GIS, Item
 from arcgis.features import FeatureLayer, Table
 
 import arcproc
+from arcproc.metadata import Workspace
 
 from proctools.filesystem import archive_folder
 from proctools.misc import log_entity_states
@@ -195,9 +196,11 @@ def upload_dataset_as_geodatabase(
     """
     geodatabase_path = Path(gettempdir(), geodatabase_name)
     arcproc.workspace.create_file_geodatabase(geodatabase_path, log_level=logging.DEBUG)
-    dataset_name = dataset_path.name
-    if dataset_name.lower().startswith("dbo."):
-        dataset_name = dataset_name[4:]
+    # Remove enterprise DB schema.
+    if Workspace(dataset_path.parent).is_enterprise_database:
+        dataset_name = dataset_path.name.split(".", maxsplit=1)[-1]
+    else:
+        dataset_name = dataset_path.name
     output_path = geodatabase_path / dataset_name
     arcproc.dataset.copy(dataset_path, output_path=output_path, log_level=logging.DEBUG)
     arcproc.dataset.compress(output_path, log_level=logging.DEBUG)
