@@ -1,5 +1,3 @@
-# For Python 2 compatibility.
-contextlib2
 dropbox
 img2pdf
 jinja2

@@ -1,11 +1,7 @@
 """File system objects."""
 from collections import Counter
 
-try:
-    from contextlib import ContextDecorator
-except ImportError:
-    # Py2.
-    from contextlib2 import ContextDecorator
+from contextlib import ContextDecorator
 import datetime
 import filecmp
 import logging
