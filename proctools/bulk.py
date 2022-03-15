@@ -326,45 +326,43 @@ def force_yn(dataset, field_names, default=None, **kwargs):
     )
 
 
-def insert_features_from_paths(
-    dataset, insert_dataset_paths, field_names=None, **kwargs
-):
+def insert_features_from_paths(dataset, source_paths, field_names=None, **kwargs):
     """Insert features into the dataset from given dataset path.
 
     Args:
         dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
             Procedure instance.
-        insert_dataset_paths (iter): Collection of paths with features to insert.
+        source_paths (iter): Collection of paths with features to insert.
         field_names (iter): Collection of field names to insert. Listed field must be
             present in both datasets. If field_names is None, all fields will be
             inserted.
         **kwargs: Arbitrary keyword arguments. See below.
 
     Keyword Args:
-        insert_where_sql (str): SQL where-clause for insert-dataset subselection.
+        source_where_sql (str): SQL where-clause for insert-dataset subselection.
         use_edit_session (bool): Flag to perform updates in an edit session. Default is
             False.
     """
-    kwargs.setdefault("insert_where_sql")
+    kwargs.setdefault("source_where_sql")
     kwargs.setdefault("use_edit_session", False)
     if isinstance(dataset, arcproc.managers.Procedure):
         proc = dataset
-        for insert_dataset_path in insert_dataset_paths:
+        for source_path in source_paths:
             proc.transform(
                 arcproc.features.insert_from_path,
-                insert_dataset_path=insert_dataset_path,
                 field_names=field_names,
-                insert_where_sql=kwargs["insert_where_sql"],
+                source_path=source_path,
+                source_where_sql=kwargs["source_where_sql"],
                 use_edit_session=kwargs["use_edit_session"],
             )
     else:
         dataset_path = dataset
-        for insert_dataset_path in insert_dataset_paths:
+        for source_path in source_paths:
             arcproc.features.insert_from_path(
                 dataset_path,
-                insert_dataset_path,
-                field_names,
-                insert_where_sql=kwargs["insert_where_sql"],
+                field_names=field_names,
+                source_path=source_path,
+                source_where_sql=kwargs["source_where_sql"],
                 use_edit_session=kwargs["use_edit_session"],
             )
 
