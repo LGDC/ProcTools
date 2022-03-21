@@ -180,7 +180,20 @@ class Batch:
                 self.name, self.status_description
             )
             kwargs["body"] = template.render(last_run_metas=last_run_metas)
-            send_email_smtp(host, from_address, body_type="html", **kwargs)
+            send_email_smtp(
+                from_address=from_address,
+                to_addresses=kwargs.get("to_addresses"),
+                copy_addresses=kwargs.get("copy_addresses"),
+                blind_copy_addresses=kwargs.get("blind_copy_addresses"),
+                reply_to_addresses=kwargs.get("reply_to_addresses"),
+                subject=kwargs["subject"],
+                body=kwargs["body"],
+                body_type="html",
+                attachment_paths=kwargs.get("attachment_paths"),
+                host=host,
+                port=kwargs.get("port", 25),
+                password=kwargs.get("password"),
+            )
 
 
 class Database:
@@ -255,7 +268,7 @@ class Database:
             str
         """
         return sql_server_odbc_string(
-            self.host, self.name, username, password, **kwargs
+            self.host, self.name, username=username, password=password, **kwargs
         )
 
 

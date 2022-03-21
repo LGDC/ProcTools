@@ -1,9 +1,10 @@
 """Data & file transfer objects."""
-import datetime
+from datetime import datetime as _datetime
 import ftplib
 import logging
 from pathlib import Path, PurePosixPath
 import time
+from typing import Optional, Union
 
 import dropbox
 import pysftp
@@ -11,70 +12,68 @@ import pysftp
 
 __all__ = []
 
-LOG = logging.getLogger(__name__)
-"""logging.Logger: Module-level logger."""
+LOG: logging.Logger = logging.getLogger(__name__)
+"""Module-level logger."""
 
 
-def dropbox_get_share_link(share_path, app_token, **kwargs):
+def dropbox_get_share_link(
+    share_path: Union[PurePosixPath, str],
+    *,
+    app_token: str,
+    link_password: Optional[str] = None,
+    time_link_expires: Optional[_datetime] = None,
+) -> str:
     """Return shareable URL for Dropbox file or folder.
 
     Note: Basic user accounts cannot set a link password or expiration date/time.
 
     Args:
-        share_path (pathlib.PurePosixPath, str): POSIX path relative to Dropbox (app)
-            root folder for file/folder to share.
-        app_token (str): Registered app token for API access.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        link_password (str, None): Password to access the link. Default is None (no
-            password).
-        link_expires (datetime.datetime, None): Date & time the link will expire.
-            Default is None (never expires).
-
-    Returns:
-        str
+        share_path: POSIX path to item to share, relative to Dropbox (app) root folder.
+        app_token: Registered app token for API access.
+        link_password: Password for accessing link. If set to None, no password set.
+        time_link_expires: Time when link will expire. If set to None, never expires.
     """
     share_path = PurePosixPath(share_path)
     # Dropbox path requires explicit path from app-root.
     if not bool(share_path.root):
         share_path = PurePosixPath("/", share_path)
-    kwargs.setdefault("link_password")
-    kwargs.setdefault("link_expires")
     api = dropbox.Dropbox(oauth2_access_token=app_token)
     settings = dropbox.sharing.SharedLinkSettings(
-        link_password=kwargs["link_password"],
+        link_password=link_password,
         requested_visibility=(
             dropbox.sharing.RequestedVisibility.password
-            if kwargs["link_password"]
+            if link_password
             else dropbox.sharing.RequestedVisibility.public
         ),
-        expires=kwargs["link_expires"],
+        expires=time_link_expires,
     )
+    # dropbox v10.10.0: Convert PurPosixPath to str.
     link_meta = api.sharing_create_shared_link_with_settings(
-        # dropbox v10.10.0: Convert to str.
-        path=str(share_path),
-        settings=settings,
+        path=str(share_path), settings=settings
     )
     return link_meta.url.replace("?dl=0", "?dl=1")
 
 
-def dropbox_upload_file(source_path, destination_path, app_token, **kwargs):
+def dropbox_upload_file(
+    source_path: Union[Path, str],
+    *,
+    destination_path: Union[PurePosixPath, str],
+    app_token: str,
+    chunk_size: Optional[int] = None,
+) -> PurePosixPath:
     """Upload file to Dropbox.
 
     Args:
-        source_path (pathlib.Path, str): Path of file to upload.
-        destination_path (pathlib.PurePosixPath, str): POSIX path relative to Dropbox
-            (app) root folder to upload into.
-        app_token (str): Registered app token for API access.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        chunk_size (int): Size of individual upload chunks within the session. Default
-            is whichever is smaller of file size or 128 MB (decimal).
+        source_path: Path to source file to upload.
+        destination_path: POSIX path to file destination, relative to Dropbox (app) root
+            folder.
+        share_path: POSIX path to item to share, relative to Dropbox (app) root folder.
+        app_token: Registered app token for API access.
+        chunk_size: Size of individual upload chunks within the session. If set to None,
+            will be the smaller of file size or 128 MB.
 
     Returns:
-        pathlib.PurePosixPath: POSIX path in Dropbox (app).
+        POSIX path to file in Dropbox (app).
     """
     source_path = Path(source_path)
     destination_path = PurePosixPath(destination_path)
@@ -82,68 +81,66 @@ def dropbox_upload_file(source_path, destination_path, app_token, **kwargs):
     if not bool(destination_path.root):
         destination_path = PurePosixPath("/", destination_path)
     file_size = source_path.stat().st_size
-    kwargs.setdefault("chunk_size", min(file_size + 1, 134_217_728))
+    if not chunk_size:
+        chunk_size = min(file_size + 1, 134_217_728)
     commit_kwargs = {
-        # dropbox v10.10.0: Convert to str.
+        # dropbox v10.10.0: Convert PurePosixPath to str.
         "path": str(destination_path),
         "mode": dropbox.files.WriteMode("overwrite"),
-        "client_modified": datetime.datetime(
-            *time.gmtime(source_path.stat().st_mtime)[:6]
-        ),
+        "client_modified": _datetime(*time.gmtime(source_path.stat().st_mtime)[:6]),
         "mute": True,
     }
     api = dropbox.Dropbox(oauth2_access_token=app_token)
     stream = source_path.open(mode="rb")
-    if file_size <= kwargs["chunk_size"]:
+    if file_size <= chunk_size:
         file_meta = api.files_upload(f=stream.read(), **commit_kwargs)
     else:
-        session_meta = api.files_upload_session_start(
-            f=stream.read(kwargs["chunk_size"])
-        )
+        session_meta = api.files_upload_session_start(f=stream.read(chunk_size))
         cursor = dropbox.files.UploadSessionCursor(
             session_id=session_meta.session_id, offset=stream.tell()
         )
-        while (file_size - stream.tell()) > kwargs["chunk_size"]:
-            api.files_upload_session_append_v2(
-                f=stream.read(kwargs["chunk_size"]), cursor=cursor
-            )
+        while (file_size - stream.tell()) > chunk_size:
+            api.files_upload_session_append_v2(f=stream.read(chunk_size), cursor=cursor)
             cursor.offset = stream.tell()
         file_meta = api.files_upload_session_finish(
-            f=stream.read(kwargs["chunk_size"]),
+            f=stream.read(chunk_size),
             cursor=cursor,
             commit=dropbox.files.CommitInfo(**commit_kwargs),
         )
     return PurePosixPath(file_meta.path_display)
 
 
-def ftp_upload_file(source_path, destination_path, host, **kwargs):
+def ftp_upload_file(
+    source_path: Union[Path, str],
+    *,
+    destination_path: Union[PurePosixPath, str],
+    host: str,
+    port: int = 21,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+) -> PurePosixPath:
     """Upload file to FTP site.
 
     Args:
-        source_path (pathlib.Path, str): Path of file to upload.
-        destination_path (pathlib.PurePosixPath, str): POSIX path relative to FTP root
-            folder to upload into.
-        host (str): Host name of FTP site.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        port (int): Port to connect to. Default is 21.
-        username (str, None): Credential user name. Default is None (no credentials).
-        password (str, None): Credential password. Default is None (no credentials).
+        source_path: Path to source file to upload.
+        destination_path: POSIX path to file destination, relative to site root folder.
+        host: Host name of FTP site.
+        port: Port to connect to site on.
+        username: Name of user for authentication with site. If set to None, will not
+            authenticate with credentials.
+        password: Password for authentication with site. If set to None, will not
+            authenticate with credentials.
 
     Returns:
-        pathlib.PurePosixPath: POSIX path from FTP where file was placed at.
+        POSIX path to file on site.
     """
     source_path = Path(source_path)
     destination_path = PurePosixPath(destination_path)
-    kwargs.setdefault("port", 21)
-    kwargs.setdefault("username")
-    kwargs.setdefault("password")
     try:
         ftp = ftplib.FTP(host="")
-        ftp.connect(host, port=kwargs["port"])
-        ftp.login(user=kwargs["username"], passwd=kwargs["password"])
-        # Py 3.7.10: Convert to str.
+        ftp.connect(host, port=port)
+        ftp.login(user=username, passwd=password)
+        # Py 3.7.10: Convert PurePosixPath to str.
         ftp.cwd(str(destination_path.parent))
         with source_path.open(mode="rb") as file:
             ftp.storbinary(cmd=f"STOR {destination_path.name}", fp=file)
@@ -152,36 +149,45 @@ def ftp_upload_file(source_path, destination_path, host, **kwargs):
     return destination_path
 
 
-def secure_ftp_upload_file(source_path, destination_path, host, **kwargs):
-    """Upload files to Secure FTP site.
+def secure_ftp_upload_file(
+    source_path: Union[Path, str],
+    *,
+    destination_path: Union[PurePosixPath, str],
+    host: str,
+    port: int = 22,
+    username: Optional[str] = None,
+    password: Optional[str] = None,
+    private_key: Optional[Union[Path, str]] = None,
+) -> PurePosixPath:
+    """Upload files to secure FTP site.
 
     Args:
-        source_path (pathlib.Path, str): Path of file to upload.
-        destination_path (pathlib.PurePosixPath, str): POSIX path relative to FTP root
-            folder to upload into.
-        host (str): Host name of FTP site.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        port (int): Port to connect to on host. Default is 22.
-        username (str, None): Credential user name. Default is None (no credentials).
-        password (str, None): Credential password. Default is None (no credentials).
-        private_key (pathlib.Path, str, None): Path to keyfile, or key string. Default
-            is None (no private key).
+        source_path: Path to source file to upload.
+        destination_path: POSIX path to file destination, relative to site root folder.
+        host: Host name of FTP site.
+        port: Port to connect to site on.
+        username: Name of user for authentication with site. If set to None, will not
+            authenticate with credentials.
+        password: Password for authentication with site. If set to None, will not
+            authenticate with credentials.
+        private_key: Path to keyfile, or key string.
 
     Returns:
-        pathlib.PurePosixPath: POSIX path from FTP where file was placed at.
+        POSIX path to file on site.
     """
     source_path = Path(source_path)
     destination_path = PurePosixPath(destination_path)
-    kwargs.setdefault("port", 22)
-    kwargs.setdefault("username")
-    kwargs.setdefault("password")
-    kwargs.setdefault("private_key")
     connection_options = pysftp.CnOpts()
     # Yeah, this is not great, but not that worried about MitM in our cases.
     connection_options.hostkeys = None
-    sftp = pysftp.Connection(host, cnopts=connection_options, **kwargs)
+    sftp = pysftp.Connection(
+        host,
+        username=username,
+        password=password,
+        private_key=private_key,
+        port=port,
+        cnopts=connection_options,
+    )
     with sftp:
         sftp.put(
             localpath=source_path, remotepath=destination_path, preserve_mtime=True
