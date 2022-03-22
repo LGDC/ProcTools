@@ -1,27 +1,26 @@
 """Value-building, -deriving, and -cleaning objects."""
-import datetime
+from datetime import date, datetime as _datetime
 from hashlib import sha256
 import logging
 import string
-import sys
-import unicodedata
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from unicodedata import combining, normalize
 
 import dateutil.parser
 
-# Py2.
-if sys.version_info.major >= 3:
-    basestring = str
-    unicode = str
+# Py3.7: pairwise added to standard library itertools in 3.10.
+from more_itertools import pairwise
 
 
 __all__ = []
 
-LOG = logging.getLogger(__name__)
-"""logging.Logger: Module-level logger."""
+LOG: logging.Logger = logging.getLogger(__name__)
+"""Module-level logger."""
 
-PUNCTUATION = string.punctuation + "–—"
-"""str: Common punctuation characters."""
-TITLE_CASE_EXCEPTIONS = {
+# Adding en-dash & em-dash; string.punctuation only has hyphen.
+PUNCTUATION: str = string.punctuation + "–—"
+"""Common punctuation characters."""
+TITLE_CASE_EXCEPTIONS: Dict[str, List[str]] = {
     "directional_abbreviations": ["N", "S", "E", "W", "NE", "NW", "SE", "SW"],
     # Keep final punctuation off, already stripped in function.
     "latin_acronyms": ["e.g", "i.e", "etc"],
@@ -89,34 +88,30 @@ TITLE_CASE_EXCEPTIONS = {
         "the",
     ],
 }
-"""dict: Mapping of tag to collections of exceptions in Python title-casing."""
+"""Mapping of tag to collections of exceptions to Python title-casing."""
 
 
-def any_in_range(numbers, floor, ceiling):
-    """Return True if any of the integers are in given range.
+def any_in_range(*numbers: int, floor: int, ceiling: int) -> bool:
+    """Return True if any of the integers are within given range.
 
     Args:
-        numbers (iter): Integers to evaluate.
-        floor (int): Lowest integer in range.
-        ceiling (int): Highest integer in range.
-
-    Returns:
-        bool
+        *numbers: Integers to evaluate.
+        floor: Lowest integer in range.
+        ceiling: Highest integer in range.
     """
     return any(number in range(floor, ceiling + 1) for number in numbers)
 
 
-def clean_whitespace(value, clear_empty_string=True):
+def clean_whitespace(
+    value: Union[str, None], *, clear_empty_string: bool = True
+) -> Union[str, None]:
     """Return value with whitespace stripped & deduplicated.
 
     Args:
-        value (str): Value to alter.
-        clear_empty_string (bool): Convert empty string results to NoneTypes if True.
-
-    Returns
-        str: Altered value.
+        value: Value to alter.
+        clear_empty_string: Convert empty string results to None if True.
     """
-    if isinstance(value, basestring):
+    if value is not None:
         value = value.strip()
         for character in string.whitespace:
             while character * 2 in value:
@@ -126,65 +121,58 @@ def clean_whitespace(value, clear_empty_string=True):
     return value
 
 
-def concatenate(*values, **kwargs):
+def concatenate(
+    *values: Any,
+    nonetype_replacement: Optional[str] = None,
+    separator: str = " ",
+    wrappers: Sequence[str] = ("", ""),
+) -> Union[str, None]:
     """Return concatenated string from ordered values with separator.
 
     Ignores NoneTypes.
 
     Args:
-        *values: Variable length argument list.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        separator (str): Character(s) to separate values with. Default is a single
-            space " ".
-        wrappers (Collection of str): Two string values with which to place before and
-            after each value. For example, ("[", "]") will wrap values with square
-            brackets. Default is ("", "") - no wrapper.
-        nonetype_replacement (str): Value to replace NoneTypes with (if provided).
+        *values: Values to concatenate. Values will be converted string if not already.
+        nonetype_replacement: Value to replace None-values with. If set to None, will
+            skip concatenating.
+        separator: String to separate values.
+        wrappers: Two string values with which to place before and after each value. For
+            example, ("[", "]") will wrap values with square brackets. Default is
+            ("", "") - no wrapper.
 
     Returns:
-        str: Concatenated values.
+        Concatenated string if not empty, None otherwise.
     """
-    separator = kwargs.get("separator", " ")
-    wrappers = kwargs.get("wrappers", ["", ""])
-    values_to_concatenate = []
-    for value in values:
-        if value is None:
-            if "nonetype_replacement" in kwargs:
-                values_to_concatenate.append(kwargs["nonetype_replacement"])
-        else:
-            values_to_concatenate.append(str(value).strip())
-    concatenated = separator.join(
-        value.join(wrappers) for value in values_to_concatenate
-    )
+    if nonetype_replacement is None:
+        values = (str(value) for value in values)
+    else:
+        values = (
+            nonetype_replacement if value is None else str(value) for value in values
+        )
+    concatenated = separator.join(value.join(wrappers) for value in values)
     return concatenated if concatenated else None
 
 
-def date_as_datetime(value):
+def date_as_datetime(value: Union[date, _datetime, None]) -> Union[_datetime, None]:
     """Return date or datetime value zero-time datetime.
 
     Args:
-        value (datetime.date, datetime.datetime): Value to alter.
+        value: Date to convert. Allows datetime values for zeroing-out time parts.
 
     Returns:
-        datetime.datetime
+        datetime version of date. None if value is None.
     """
-    if isinstance(value, datetime.datetime):
-        value = datetime.datetime.combine(value.date(), datetime.datetime.min.time())
-    if value:
-        value = datetime.datetime(value.year, value.month, value.day)
-    return value
+    return _datetime(value.year, value.month, value.day) if value else value
 
 
-def datetime_from_string(value):
-    """Return datetime object from input if possible, None if not.
+def datetime_from_string(value: Union[str, None]) -> Union[_datetime, None]:
+    """Extract datetime object from input.
 
     Args:
-        value (str): Value to alter.
+        value: Value to extract datetime from.
 
     Returns:
-        datetime: Extracted value.
+        Extracted datetime if found. None if datetime not found.
     """
     try:
         result = dateutil.parser.parse(value) if value else None
@@ -196,57 +184,45 @@ def datetime_from_string(value):
     return result
 
 
-def feature_key(*id_values):
-    """Return key value that defines a unique feature.
+def feature_key(*id_values: Iterable[Any]) -> Union[str, None]:
+    """Return key string that defines a unique feature.
 
     Args:
-        *id_values (str): Ordered collection of ID values.
-
-    Returns:
-        str
+        *id_values: Sequence of ID values.
     """
     return clean_whitespace(
-        concatenate(*id_values, separator=" | ", nonetype_replacement="")
+        concatenate(*id_values, nonetype_replacement="", separator=" | ",),
     )
 
 
-def feature_key_hash(*id_values):
-    """Return key-hash hexadecimal  value that defines a unique feature.
+def feature_key_hash(*id_values: Iterable[Any]) -> Union[str, None]:
+    """Return key-hash hexadecimal string that defines a unique feature.
 
     Args:
-        *id_values (str): Ordered collection of ID values.
-
-    Returns:
-        str
+        *id_values: Sequence of ID values.
     """
-    return sha256(feature_key(*id_values).encode()).hexdigest()
+    key = feature_key(*id_values)
+    return sha256(key.encode()).hexdigest() if key is not None else None
 
 
-def force_lowercase(value):
+def force_lowercase(value: Union[str, None]) -> Union[str, None]:
     """Return value converted to lowercase.
 
     Args:
-        value (str): Value to alter.
-
-    Returns:
-        str: Altered value.
+        value: Value to convert.
     """
-    if value:
-        value = value.lower()
-    return value
+    return value.lower() if value else value
 
 
-def force_title_case(value, correction_map=None):
+def force_title_case(
+    value: Union[str, None], *, part_correction: Optional[Dict[str, str]] = None
+) -> Union[str, None]:
     """Return value converted to title case.
 
     Args:
-        value (str, None): Input value.
-        correction_map (dict, None): Mapping of word or other string part with specific
-            output correction to title-casing. Word key must already be in title-cased
-            style (i.e. key = `key.title()`).
-
-    Returns:
-        str
+        value: Value to convert.
+        part_correction: Mapping of word or other string part to title-case correction.
+            Key must already be in title-cased style (i.e. key = `key.title()`).
     """
     if not value:
         return value
@@ -289,8 +265,8 @@ def force_title_case(value, correction_map=None):
         # Python capitalizes letters right after a number.
         if part[-3:].lower() in TITLE_CASE_EXCEPTIONS["ordinal_numbers"]:
             part = part[:-3] + part[-3:].lower()
-        if correction_map:
-            part = correction_map.get(part, part)
+        if part_correction and part in part_correction:
+            part = part_correction[part]
         # Weird edge-case: the initial "A.".
         if part == "a" and stripped["end"].startswith("."):
             part = part.upper()
@@ -300,26 +276,23 @@ def force_title_case(value, correction_map=None):
     return new_value
 
 
-def force_uppercase(value):
+def force_uppercase(value: Union[str, None]) -> Union[str, None]:
     """Return value converted to uppercase.
 
     Args:
-        value (str): Value to alter.
-
-    Returns:
-        str: Altered value.
+        value: Value to convert.
     """
-    if value:
-        value = value.upper()
-    return value
+    return value.upper() if value else value
 
 
-def force_yn(value, default=None):
+def force_yn(
+    value: Union[str, None], default: Union[str, None] = None
+) -> Union[str, None]:
     """Return given value if valid "Y" or "N" representation; otherwise return default.
 
     Args:
-        value (str): Value to alter.
-        default (str): String to force if value not valid.
+        value: Value to convert.
+        default: String (or None) to force if value not valid.
 
     Returns:
         str: Altered value.
@@ -327,29 +300,21 @@ def force_yn(value, default=None):
     return value if value in ("n", "N", "y", "Y") else default
 
 
-def is_numeric(value, nonetype_ok=True):
-    """Return True if value is numeric.
+def is_numeric(value: Union[str, None], *, nonetype_ok: bool = True) -> bool:
+    """Return True if string value is numeric.
 
     Props to: http://pythoncentral.io/
         how-to-check-if-a-string-is-a-number-in-python-including-unicode/
 
     Args:
-        value (str): Value to evaluate.
-        nonetype_ok (bool): True if NoneType value evaluated as a True result, False
-            otherwise.
-
-    Returns:
-        bool: True if numeric, False otherwise.
+        value: Value to evaluate.
+        nonetype_ok: If True, return True for NoneType values.
     """
+    if value is None:
+        return nonetype_ok
+
     try:
         float(value)
-    except TypeError:
-        if value is None and nonetype_ok:
-            result = True
-        else:
-            LOG.exception("Value %r type handling not defined.", value)
-            raise
-
     except ValueError:
         result = False
     else:
@@ -357,143 +322,106 @@ def is_numeric(value, nonetype_ok=True):
     return result
 
 
-def leading_number_sort_key(numbered_string):
-    """Return key for sorting strings starting with numbers.
+def leading_number_sort_key(value: Union[str, None]) -> Tuple[int, str]:
+    """Return key for sorting string that might start with numbers.
 
     Args:
-        numbered_string (str): String to sort.
-
-    Returns:
-        tuple
+        value: Value to evaluate.
     """
-    if not numbered_string:
+    if not value:
         return (-(2 ** 63), "")
 
-    non_numeric_tail = numbered_string.lstrip("0123456789")
-    if non_numeric_tail == numbered_string:
+    tail = value.lstrip("0123456789")
+    # No numeric head - set numeric sort value to one higher than None/empty:
+    if tail == value:
         numeric_head = 2 ** 63 - 1
-    elif not non_numeric_tail:
-        numeric_head = int(numbered_string)
+    elif not tail:
+        numeric_head = int(value)
     else:
-        numeric_head = int(numbered_string[: -len(non_numeric_tail)])
-    return (numeric_head, non_numeric_tail)
+        numeric_head = int(value[: -len(tail)])
+    return (numeric_head, tail)
 
 
-def max_value(*values):
-    """Return maximum value whle handling empty collections & NoneTypes.
+def max_value(*values: Any) -> Any:
+    """Return maximum value, handling empty collections & NoneTypes.
+
+    Values must be types comparable among all types given.
+
     Args:
-        *values: Variable length argument list.
-
-    Returns:
-        object
+        *values: Values to compare.
     """
-    if not values:
-        result = None
-    else:
-        try:
-            result = max(values)
-        except TypeError:
-            result = max_value(*(value for value in values if value is not None))
-    return result
+    values = [value for value in values if value is not None]
+    return max(*values) if values else None
 
 
-def min_value(*values):
-    """Return minimum value whle handling empty collections & NoneTypes.
+def min_value(*values: Any) -> Any:
+    """Return minimum value, handling empty collections & NoneTypes.
+
+    Values must be types comparable among all types given.
+
     Args:
-        *values: Variable length argument list.
-
-    Returns:
-        object
+        *values: Values to compare.
     """
-    if not values:
-        result = None
-    else:
-        try:
-            result = min(values)
-        except TypeError:
-            result = min_value(*(value for value in values if value is not None))
-    return result
+    values = [value for value in values if value is not None]
+    return min(*values) if values else None
 
 
-def parity(*numbers):
+def parity(*values: int) -> str:
     """Return proper parity description for a collection of integers.
 
-    Parity description can be: "Even", "Odd", or "Mixed".
-
     Args:
-        *numbers: Collection of numbers.
+        *values: Values to compare.
 
     Returns:
-        str
+        Parity description: "Even", "Odd", or "Mixed".
     """
-    numbers_bitwise = {n & 1 for n in numbers}
-    if not numbers_bitwise:
-        result = None
-    elif len(numbers_bitwise) == 1:
-        result = {0: "Even", 1: "Odd"}[numbers_bitwise.pop()]
+    if not values:
+        return None
+
+    bitwise_values = tuple(set(n & 1 for n in values))
+    if len(bitwise_values) == 1:
+        result = "Even" if bitwise_values[0] == 0 else "Odd"
     else:
         result = "Mixed"
     return result
 
 
-def remove_diacritics(value):
-    """Return string with diacritics removed.
+def remove_diacritics(value: Union[str, None]) -> Union[str, None]:
+    """Return value converted with diacritics removed.
 
     Args:
-        value (str): Value to alter.
-
-    Returns:
-        str: Altered value.
+        value: Value to convert.
     """
-    if value:
-        value = u"".join(
-            char
-            for char in unicodedata.normalize("NFKD", value)
-            if not unicodedata.combining(char)
-        )
-    return value
+    return (
+        "".join(char for char in normalize("NFKD", value) if not combining(char))
+        if value
+        else value
+    )
 
 
-def same_string_casefold(*values):
+def same_string_casefold(*values: Union[str, None]) -> bool:
     """Return True if strings are same, normalized & ignoring case.
 
     Args:
-        *values (iter): Collection of values to check.
-
-    Returns:
-        bool: True if strings are same, False otherwise.
+        *values: Values to compare.
     """
     if len(values) <= 1:
-        return True
-
-    if all(val is None for val in values):
-        return True
-
-    if any(not isinstance(string, basestring) for string in values):
-        return False
-
-    cmp_values = set()
-    for value in values:
-        # Force text to same case/normal unicode state for comparison.
-        try:
-            value = unicode(value).casefold()
-        except AttributeError:
-            value = unicode(value).upper().lower()
-        cmp_values.add(unicodedata.normalize("NFKD", value))
-    return len(cmp_values) == 1
+        same = True
+    elif any(val is None for val in values):
+        same = all(val is None for val in values)
+    else:
+        same = all(
+            normalize("NFKD", value.casefold())
+            == normalize("NFKD", cmp_value.casefold()).casefold()
+            for value, cmp_value in pairwise(values)
+        )
+    return same
 
 
-def truncate_datetime(value):
+def truncate_datetime(value: Union[_datetime, None]) -> Union[_datetime, None]:
     """Return datetime truncated to the day.
 
     Args:
-        value (datetime.datetime): Value to truncate.
-
-    Returns:
-        datetime.datetime
+        value: Value to truncate.
     """
-    return (
-        datetime.datetime(value.year, value.month, value.day)
-        if value is not None
-        else None
-    )
+    return _datetime(value.year, value.month, value.day) if value else value
