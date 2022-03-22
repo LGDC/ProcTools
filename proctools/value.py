@@ -126,20 +126,6 @@ def clean_whitespace(value, clear_empty_string=True):
     return value
 
 
-def clean_whitespace_without_clear(value):
-    """Return value with whitespace stripped & deduplicated.
-
-    Will not return NoneType if string is (or ends up) empty.
-
-    Args:
-        value (str): Value to alter.
-
-    Returns
-        str: Altered value.
-    """
-    return clean_whitespace(value, clear_empty_string=False)
-
-
 def concatenate(*values, **kwargs):
     """Return concatenated string from ordered values with separator.
 

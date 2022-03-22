@@ -98,7 +98,7 @@ def clean_all_whitespace(dataset, **kwargs):
                 function=(
                     value.clean_whitespace
                     if _field.is_nullable
-                    else value.clean_whitespace_without_clear
+                    else partial(value.clean_whitespace, clear_empty_string=False)
                 ),
                 use_edit_session=kwargs["use_edit_session"],
             )
@@ -122,28 +122,6 @@ def clean_whitespace(dataset, field_names, **kwargs):
         dataset,
         field_names,
         function=value.clean_whitespace,
-        use_edit_session=kwargs["use_edit_session"],
-    )
-
-
-def clean_whitespace_without_clear(dataset, field_names, **kwargs):
-    """Clean whitespace on values of fields without converting empty values to None.
-
-    Args:
-        dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
-            Procedure instance.
-        field_names (iter): Collection of field names to clean.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        use_edit_session (bool): Updates are done in an edit session if True. Default is
-            False.
-    """
-    kwargs.setdefault("use_edit_session", False)
-    update_by_function(
-        dataset,
-        field_names,
-        function=value.clean_whitespace_without_clear,
         use_edit_session=kwargs["use_edit_session"],
     )
 
