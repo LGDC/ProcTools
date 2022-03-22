@@ -207,7 +207,7 @@ def flattened_path(path, separator_replacement="_"):
     return path
 
 
-def folder_file_paths(folder_path, top_level_only=False, **kwargs):
+def folder_filepaths(folder_path, top_level_only=False, **kwargs):
     """Generate paths for files in folder.
 
     Args:
@@ -235,10 +235,7 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
             ):
                 yield child_path
         elif child_path.is_dir() and not top_level_only:
-            yield from folder_file_paths(child_path, top_level_only, **kwargs)
-
-
-folder_filepaths = folder_file_paths
+            yield from folder_filepaths(child_path, top_level_only, **kwargs)
 
 
 def same_file(*filepaths, not_exists_ok=True):
