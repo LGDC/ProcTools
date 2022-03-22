@@ -241,29 +241,6 @@ def folder_file_paths(folder_path, top_level_only=False, **kwargs):
 folder_filepaths = folder_file_paths
 
 
-def folder_relative_file_paths(folder_path, top_level_only=False, **kwargs):
-    """Generate paths for files in folder, relative to top-level.
-
-    Args:
-        folder_path (pathlib.Path, str): Path for folder to list file paths within.
-        top_level_only (bool): Only yield paths for files at top-level if True; include
-            subfolders as well if False.
-        **kwargs: Arbitrary keyword arguments. See below.
-
-    Keyword Args:
-        file_extensions (iter): Collection of file extensions to filter files. Include
-            the period in the extension: `.ext`. Use empty string "" for files without
-            an extension.
-
-    Yields:
-        pathlib.Path
-    """
-    folder_path = Path(folder_path)
-    filepaths = folder_filepaths(folder_path, top_level_only, **kwargs)
-    for filepath in filepaths:
-        yield filepath.relative_to(folder_path)
-
-
 def same_file(*filepaths, not_exists_ok=True):
     """Determine if given files are the same.
 
