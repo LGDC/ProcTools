@@ -155,47 +155,7 @@ def clean_pdf(source_path, output_path, **kwargs):
     return result
 
 
-def convert_image_to_pdf(image_path, output_path, error_on_failure=False):
-    """Convert image to a PDF.
-
-    Args:
-        image_path (pathlib.Path, str): Path to image file to convert.
-        output_path (pathlib.Path, str): Path for PDF to be created at.
-        error_on_failure (bool): Raise IOError if failure creating PDF.
-
-    Returns:
-        str: Result key--"converted" or "failed to convert".
-    """
-    image_path = Path(image_path)
-    output_path = Path(output_path)
-    if image_path.suffix.lower() not in IMAGE_FILE_EXTENSIONS:
-        raise ValueError("Image must have image file extension.")
-
-    call_string = (
-        f"{IMAGE2PDF_PATH} -r {IMAGE2PDF_CODE}"
-        f""" -i "{image_path}" -o "{output_path}" -g overwrite"""
-    )
-    subprocess.check_call(call_string)
-    # Image2PDF returns before the process of the underlying library completes. So we
-    # will need to wait until the PDF shows up in the file system.
-    wait_interval, max_wait, wait_time = 0.1, 30.0, 0.0
-    while not output_path.is_file():
-        if wait_time < max_wait:
-            wait_time += wait_interval
-            time.sleep(wait_interval)
-        elif error_on_failure:
-            raise IOError("Image2PDF failed to create PDF.")
-
-        else:
-            result = "failed to convert"
-            break
-
-    else:
-        result = "converted"
-    return result
-
-
-def convert_image_to_pdf2(image_path, output_path, **kwargs):
+def convert_image_to_pdf(image_path, output_path, **kwargs):
     """Convert image to a PDF.
 
     Args:
@@ -345,7 +305,7 @@ def convert_folder_images_to_pdf(folder_path, top_level_only=False, **kwargs):
 
         if not result:
             output_filepath = filepath.with_suffix(".pdf")
-            result = convert_image_to_pdf2(
+            result = convert_image_to_pdf(
                 filepath,
                 output_filepath,
                 overwrite_older_only=kwargs["overwrite_older_only"],
