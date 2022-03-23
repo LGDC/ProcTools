@@ -89,7 +89,9 @@ def clean_folder_pdfs(folder_path, top_level_only=False, **kwargs):
     if not folder_path.is_dir():
         raise FileNotFoundError(f"`{folder_path}` not accessible folder")
 
-    filepaths = folder_filepaths(folder_path, top_level_only, file_extensions=[".pdf"])
+    filepaths = folder_filepaths(
+        folder_path, file_extensions=[".pdf"], top_level_only=top_level_only
+    )
     states = Counter()
     for i, filepath in enumerate(filepaths, start=1):
         cleaned_path = filepath.parent / ("Cleaned_" + filepath.name)
@@ -329,7 +331,9 @@ def convert_folder_images_to_pdf(folder_path, top_level_only=False, **kwargs):
         raise FileNotFoundError(f"`{folder_path}` not accessible folder")
 
     filepaths = folder_filepaths(
-        folder_path, top_level_only, file_extensions=IMAGE_FILE_EXTENSIONS
+        folder_path,
+        file_extensions=IMAGE_FILE_EXTENSIONS,
+        top_level_only=top_level_only,
     )
     states = Counter()
     for i, filepath in enumerate(filepaths, start=1):
@@ -407,7 +411,9 @@ def create_folder_image_thumbnails(
         raise FileNotFoundError(f"`{folder_path}` not accessible folder")
 
     filepaths = folder_filepaths(
-        folder_path, top_level_only, file_extensions=IMAGE_FILE_EXTENSIONS
+        folder_path,
+        file_extensions=IMAGE_FILE_EXTENSIONS,
+        top_level_only=top_level_only,
     )
     states = Counter()
     for i, filepath in enumerate(filepaths, start=1):

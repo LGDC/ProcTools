@@ -208,8 +208,8 @@ def upload_dataset_as_geodatabase(
     archive_folder(
         folder_path=geodatabase_path,
         archive_path=zip_filepath,
+        exclude_patterns=[".lock", ".zip"],
         include_base_folder=True,
-        archive_exclude_patterns=[".lock", ".zip"],
     )
     arcproc.dataset.delete(geodatabase_path, log_level=logging.DEBUG)
     # pylint: disable=no-member
