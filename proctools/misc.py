@@ -156,7 +156,7 @@ def randomized(iterable: Iterable[Any]) -> Iterator[Any]:
 
 def sql_server_odbc_string(
     host: str,
-    database_name: Optional(str) = None,
+    database_name: Optional[str] = None,
     *,
     port: Optional[int] = None,
     username: Optional[str] = None,
