@@ -245,6 +245,8 @@ class Database:
         Returns:
             sqlalchemy.orm.session.Session
         """
+        if "application" in kwargs:
+            kwargs["application_name"] = kwargs.pop("application")
         odbc_string = self.get_odbc_string(username, password, **kwargs)
         url = self._sqlalchemy.setdefault(
             "url", f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_string)}"
