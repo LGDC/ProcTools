@@ -200,10 +200,6 @@ def convert_image_to_pdf(image_path, output_path, **kwargs):
             if str(error) == "Refusing to work on images with alpha channel":
                 # The image2pdf command-line tool will do this.
                 result = convert_image_to_pdf_cmd(image_path, output_path)
-            # TODO: Strip out this commented-out code if Py3 does not have this problem.
-            # # Value too large for long. Seems to be an issue with signed integers. Py2?
-            # elif str(error).startswith("cannot handle type <type 'long'> with content"):
-            #     result = convert_image_to_pdf_cmd(image_path, output_path)
             else:
                 raise
 
