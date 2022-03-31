@@ -52,6 +52,53 @@ WORLD_FILE_EXTENSIONS: List[str] = [
 """Collection of known image world file extensions."""
 
 
+def _cmd_convert_image_to_pdf(
+    image_path: Union[Path, str],
+    *,
+    output_path: Union[Path, str],
+    error_on_failure: bool = False,
+) -> str:
+    """Convert image file to a PDF file using command-line tool.
+
+    Args:
+        image_path: Path to image file.
+        output_path: Path to created PDF file.
+        error_on_failure: Raise IOError if failure creating PDF.
+
+    Returns:
+        Result key--"converted", "failed to convert", or "no conversion necessary".
+
+    Raises:
+        IOError: If failure creating PDF and `error_on_failure = True`.
+    """
+    image_path = Path(image_path)
+    output_path = Path(output_path)
+    image2pdf_path: Path = (
+        Path(__file__).parent.parent / "resources\\apps\\Image2PDF\\image2pdf.exe"
+    )
+    check_call(
+        f"{image2pdf_path} -r EUIEUFBFYUOQVPAT"
+        f""" -i "{image_path}" -o "{output_path}" -g overwrite"""
+    )
+    # Image2PDF returns before the process of the underlying library completes. So we
+    # will need to wait until the PDF shows up in the file system.
+    wait_seconds, max_seconds_waitedt, seconds_waited = 0.1, 30.0, 0.0
+    while not output_path.is_file():
+        if seconds_waited < max_seconds_waitedt:
+            seconds_waited += wait_seconds
+            sleep(wait_seconds)
+        elif error_on_failure:
+            raise IOError("Image2PDF failed to create PDF.")
+
+        else:
+            result = "failed to convert"
+            break
+
+    else:
+        result = "converted"
+    return result
+
+
 def clean_pdf(
     pdf_path: Union[Path, str],
     *,
@@ -254,53 +301,6 @@ def convert_images_to_pdf(
     elapsed(start_time, logger=logger)
     logger.info("End: Convert.")
     return states
-
-
-def _cmd_convert_image_to_pdf(
-    image_path: Union[Path, str],
-    *,
-    output_path: Union[Path, str],
-    error_on_failure: bool = False,
-) -> str:
-    """Convert image file to a PDF file using command-line tool.
-
-    Args:
-        image_path: Path to image file.
-        output_path: Path to created PDF file.
-        error_on_failure: Raise IOError if failure creating PDF.
-
-    Returns:
-        Result key--"converted", "failed to convert", or "no conversion necessary".
-
-    Raises:
-        IOError: If failure creating PDF and `error_on_failure = True`.
-    """
-    image_path = Path(image_path)
-    output_path = Path(output_path)
-    image2pdf_path: Path = (
-        Path(__file__).parent.parent / "resources\\apps\\Image2PDF\\image2pdf.exe"
-    )
-    check_call(
-        f"{image2pdf_path} -r EUIEUFBFYUOQVPAT"
-        f""" -i "{image_path}" -o "{output_path}" -g overwrite"""
-    )
-    # Image2PDF returns before the process of the underlying library completes. So we
-    # will need to wait until the PDF shows up in the file system.
-    wait_seconds, max_seconds_waitedt, seconds_waited = 0.1, 30.0, 0.0
-    while not output_path.is_file():
-        if seconds_waited < max_seconds_waitedt:
-            seconds_waited += wait_seconds
-            sleep(wait_seconds)
-        elif error_on_failure:
-            raise IOError("Image2PDF failed to create PDF.")
-
-        else:
-            result = "failed to convert"
-            break
-
-    else:
-        result = "converted"
-    return result
 
 
 def convert_image_to_thumbnail(
