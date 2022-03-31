@@ -210,6 +210,53 @@ def convert_image_to_pdf(
     return result
 
 
+def convert_images_to_pdf(
+    image_paths: Union[Path, str],
+    *,
+    disable_max_image_pixels: bool = False,
+    overwrite_older_only: bool = True,
+    logger: Optional[Logger] = None,
+    log_evaluated_division: Optional[int] = None,
+) -> Counter:
+    """Convert image files to PDF files.
+
+    Args:
+        image_paths: Paths to image files.
+        disable_max_image_pixels: If True, will disable the underlying library's maximum
+            number of pixels an image can have to be processed.
+        overwrite_older_only: If True and PDF already exists, will only overwrite if
+            modified date is older than source file.
+        logger: Logger to emit loglines to. If set to None, will default to submodule
+            logger.
+        log_evaluated_division: Division at which to emit a logline about the number of
+            files evaluated so far. If set to None, will default to not logging
+            divisions.
+
+    Returns:
+        File counts for each conversion result type.
+    """
+    start_time = _datetime.now()
+    if logger is None:
+        logger = LOG
+    logger.info("Start: Convert images to PDFs.")
+    states = Counter()
+    for i, image_path in enumerate(image_paths, start=1):
+        image_path = Path(image_path)
+        result = convert_image_to_pdf(
+            image_path,
+            output_path=image_path.with_suffix(".pdf"),
+            disable_max_image_pixels=disable_max_image_pixels,
+            overwrite_older_only=overwrite_older_only,
+        )
+        states[result] += 1
+        if log_evaluated_division and i % log_evaluated_division == 0:
+            logger.info("Evaluated %s PDFs.", format(i, ",d"))
+    log_entity_states("images", states, logger=logger, log_level=INFO)
+    elapsed(start_time, logger=logger)
+    logger.info("End: Convert.")
+    return states
+
+
 def _cmd_convert_image_to_pdf(
     image_path: Union[Path, str],
     *,
