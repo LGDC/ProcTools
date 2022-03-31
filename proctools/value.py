@@ -145,6 +145,7 @@ def concatenate(
     """
     if nonetype_replacement is None:
         values = (str(value) for value in values)
+        values = (str(value) for value in values if value is not None)
     else:
         values = (
             nonetype_replacement if value is None else str(value) for value in values

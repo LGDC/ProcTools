@@ -386,7 +386,7 @@ def update_replica_folder(
             filepath.parent.mkdir(parents=True, exist_ok=True)
         states[update_file(filepath, source_filepath=source_filepath)] += 1
         if log_evaluated_division and i % log_evaluated_division == 0:
-            logger.info(f"Evaluated {i:,} files.")
+            logger.info("Evaluated %s files.", format(i, ",d"))
     log_entity_states("files", states, logger=logger, log_level=logging.INFO)
     elapsed(start_time, logger=logger)
     logger.info("End: Update.")
