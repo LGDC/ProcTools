@@ -53,60 +53,6 @@ WORLD_FILE_EXTENSIONS: List[str] = [
 """Collection of known image world file extensions."""
 
 
-def clean_folder_pdfs(
-    folder_path: Union[Path, str],
-    *,
-    overwrite_older_only: bool = True,
-    top_level_only: bool = False,
-    logger: Optional[Logger] = None,
-    log_evaluated_division: Optional[int] = None,
-) -> Counter:
-    """Clean PDF files of executable scripting.
-
-    Args:
-        folder_path: Path to folder.
-        overwrite_older_only: If True and PDF already exists, will only overwrite if
-            modified date is older than source file.
-        top_level_only: Only clean files at top-level if True. Include subfolders as
-            well if False.
-        logger: Logger to emit loglines to. If set to None, will default to submodule
-            logger.
-        log_evaluated_division: Division at which to emit a logline about the number of
-            files evaluated so far. If set to None, will default to not logging
-            divisions.
-
-    Returns:
-        File counts for each clean result type.
-    """
-    start_time = _datetime.now()
-    folder_path = Path(folder_path)
-    if logger is None:
-        logger = LOG
-    logger.info("Start: Clean PDFs in folder `%s`.", folder_path)
-    filepaths = folder_filepaths(
-        folder_path, file_extensions=[".pdf"], top_level_only=top_level_only
-    )
-    states = Counter()
-    for i, filepath in enumerate(filepaths, start=1):
-        cleaned_path = filepath.parent / ("Cleaned_" + filepath.name)
-        result = clean_pdf(
-            filepath,
-            output_path=cleaned_path,
-            overwrite_older_only=overwrite_older_only,
-        )
-        states[result] += 1
-        if result == "cleaned":
-            # Replace original with now-cleaned one.
-            filepath.unlink()
-            cleaned_path.rename(filepath)
-        if log_evaluated_division and i % log_evaluated_division == 0:
-            logger.info("Evaluated %s PDFs.", format(i, ",d"))
-    log_entity_states("PDFs", states, logger=logger, log_level=INFO)
-    elapsed(start_time, logger=logger)
-    logger.info("End: Clean.")
-    return states
-
-
 def clean_pdf(
     pdf_path: Union[Path, str],
     *,
