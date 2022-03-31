@@ -5,7 +5,7 @@ from logging import INFO, Logger, getLogger
 from pathlib import Path
 from subprocess import check_call
 from time import sleep
-from typing import List, Optional, Sequence, Union
+from typing import Iterable, List, Optional, Sequence, Union
 
 import img2pdf
 from PIL import Image, ImageFile, ImageSequence
@@ -105,7 +105,7 @@ def clean_pdf(
 
 
 def clean_pdfs(
-    pdf_paths: Union[Path, str],
+    pdf_paths: Iterable[Union[Path, str]],
     *,
     overwrite_older_only: bool = True,
     logger: Optional[Logger] = None,
@@ -211,7 +211,7 @@ def convert_image_to_pdf(
 
 
 def convert_images_to_pdf(
-    image_paths: Union[Path, str],
+    image_paths: Iterable[Union[Path, str]],
     *,
     disable_max_image_pixels: bool = False,
     overwrite_older_only: bool = True,
