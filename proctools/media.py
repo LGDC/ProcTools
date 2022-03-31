@@ -359,7 +359,7 @@ def create_folder_image_thumbnails(
         if ignore_suffix and filepath.stem.casefold().endswith(suffix.casefold()):
             result = "ignoring for suffix"
         else:
-            result = create_image_thumbnail(
+            result = convert_image_to_thumbnail(
                 filepath,
                 output_path=filepath.stem + suffix + filepath.suffix,
                 pixel_height=pixel_height,
@@ -377,7 +377,7 @@ def create_folder_image_thumbnails(
     return states
 
 
-def create_image_thumbnail(
+def convert_image_to_thumbnail(
     image_path: Union[Path, str],
     *,
     output_path: Union[Path, str],
