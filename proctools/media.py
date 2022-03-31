@@ -12,7 +12,6 @@ from PIL import Image, ImageFile, ImageSequence
 
 from pdfid_PL import PDFiD as pdfid
 
-from proctools.filesystem import folder_filepaths
 from proctools.misc import elapsed, log_entity_states
 
 
@@ -302,79 +301,6 @@ def _cmd_convert_image_to_pdf(
     else:
         result = "converted"
     return result
-
-
-def create_folder_image_thumbnails(
-    folder_path: Union[Path, str],
-    *,
-    pixel_height: int,
-    pixel_width: int,
-    suffix: str,
-    ignore_suffix: bool = True,
-    disable_max_image_pixels: bool = False,
-    overwrite_older_only: bool = True,
-    resample: int = Image.BICUBIC,
-    top_level_only: bool = False,
-    logger: Optional[Logger] = None,
-    log_evaluated_division: Optional[int] = None,
-) -> Counter:
-    """Convert image files to thumbnail image files.
-
-    Args:
-        folder_path: Path to folder.
-        pixel_height: Maximum height of thumbnail in pixels.
-        pixel_width: Maximum width of thumbnail in pixels.
-        suffix: Suffix to attach to file name.
-        ignore_suffix: If True & image file has the given suffix, ignore as an existing
-            thumbnail.
-        disable_max_image_pixels: If True, will disable the underlying library's maximum
-            number of pixels an image can have to be processed.
-        overwrite_older_only: If True and PDF already exists, will only overwrite if
-            modified date is older than source file.
-        resample: Filter to use for resampling. Refer to Pillow package for filter
-            number codes.
-        top_level_only: Only convert files at top-level if True. Include subfolders as
-            well if False.
-        logger: Logger to emit loglines to. If set to None, will default to submodule
-            logger.
-        log_evaluated_division: Division at which to emit a logline about the number of
-            files evaluated so far. If set to None, will default to not logging
-            divisions.
-
-    Returns:
-        File counts for each conversion result type.
-    """
-    start_time = _datetime.now()
-    folder_path = Path(folder_path)
-    if logger is None:
-        logger = LOG
-    logger.info("Start: Convert images to thumbnail in folder `%s`.", folder_path)
-    filepaths = folder_filepaths(
-        folder_path,
-        file_extensions=IMAGE_FILE_EXTENSIONS,
-        top_level_only=top_level_only,
-    )
-    states = Counter()
-    for i, filepath in enumerate(filepaths, start=1):
-        if ignore_suffix and filepath.stem.casefold().endswith(suffix.casefold()):
-            result = "ignoring for suffix"
-        else:
-            result = convert_image_to_thumbnail(
-                filepath,
-                output_path=filepath.stem + suffix + filepath.suffix,
-                pixel_height=pixel_height,
-                pixel_width=pixel_width,
-                disable_max_image_pixels=disable_max_image_pixels,
-                overwrite_older_only=overwrite_older_only,
-                resample=resample,
-            )
-        states[result] += 1
-        if log_evaluated_division and i % log_evaluated_division == 0:
-            logger.info("Evaluated %s PDFs.", format(i, ",d"))
-    log_entity_states("images", states, logger=logger, log_level=INFO)
-    elapsed(start_time, logger=logger)
-    logger.info("End: Convert.")
-    return states
 
 
 def convert_image_to_thumbnail(
