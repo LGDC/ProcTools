@@ -445,6 +445,71 @@ def convert_image_to_thumbnail(
     return result
 
 
+def convert_images_to_thumbnails(
+    image_paths: Iterable[Union[Path, str]],
+    *,
+    pixel_height: int,
+    pixel_width: int,
+    suffix: str,
+    ignore_suffix: bool = True,
+    disable_max_image_pixels: bool = False,
+    overwrite_older_only: bool = True,
+    resample: int = Image.BICUBIC,
+    logger: Optional[Logger] = None,
+    log_evaluated_division: Optional[int] = None,
+) -> Counter:
+    """Convert image files to thumbnail image files.
+
+    Args:
+        image_paths: Paths to image files.
+        pixel_height: Maximum height of thumbnail in pixels.
+        pixel_width: Maximum width of thumbnail in pixels.
+        suffix: Suffix to attach to file name.
+        ignore_suffix: If True & image file has the given suffix, ignore as an existing
+            thumbnail.
+        disable_max_image_pixels: If True, will disable the underlying library's maximum
+            number of pixels an image can have to be processed.
+        overwrite_older_only: If True and PDF already exists, will only overwrite if
+            modified date is older than source file.
+        resample: Filter to use for resampling. Refer to Pillow package for filter
+            number codes.
+        logger: Logger to emit loglines to. If set to None, will default to submodule
+            logger.
+        log_evaluated_division: Division at which to emit a logline about the number of
+            files evaluated so far. If set to None, will default to not logging
+            divisions.
+
+    Returns:
+        File counts for each conversion result type.
+    """
+    start_time = _datetime.now()
+    if logger is None:
+        logger = LOG
+    logger.info("Start: Convert images to thumbnails.")
+    states = Counter()
+    for i, image_path in enumerate(image_paths, start=1):
+        image_path = Path(image_path)
+        if ignore_suffix and image_path.stem.casefold().endswith(suffix.casefold()):
+            result = "ignoring for suffix"
+        else:
+            result = convert_image_to_thumbnail(
+                image_path,
+                output_path=image_path.stem + suffix + image_path.suffix,
+                pixel_height=pixel_height,
+                pixel_width=pixel_width,
+                disable_max_image_pixels=disable_max_image_pixels,
+                overwrite_older_only=overwrite_older_only,
+                resample=resample,
+            )
+        states[result] += 1
+        if log_evaluated_division and i % log_evaluated_division == 0:
+            logger.info("Evaluated %s images.", format(i, ",d"))
+    log_entity_states("images", states, logger=logger, log_level=INFO)
+    elapsed(start_time, logger=logger)
+    logger.info("End: Convert.")
+    return states
+
+
 def merge_tiffs(
     image_paths: Sequence[Union[Path, str]],
     *,
