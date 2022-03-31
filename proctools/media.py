@@ -158,6 +158,54 @@ def clean_pdf(
     return result
 
 
+def clean_pdfs(
+    pdf_paths: Union[Path, str],
+    *,
+    overwrite_older_only: bool = True,
+    logger: Optional[Logger] = None,
+    log_evaluated_division: Optional[int] = None,
+) -> Counter:
+    """Clean PDF files of executable scripting.
+
+    Args:
+        pdf_paths: Paths to PDF files.
+        overwrite_older_only: If True and PDF already exists, will only overwrite if
+            modified date is older than source file.
+        logger: Logger to emit loglines to. If set to None, will default to submodule
+            logger.
+        log_evaluated_division: Division at which to emit a logline about the number of
+            files evaluated so far. If set to None, will default to not logging
+            divisions.
+
+    Returns:
+        File counts for each clean result type.
+    """
+    start_time = _datetime.now()
+    if logger is None:
+        logger = LOG
+    logger.info("Start: Clean PDFs.")
+    states = Counter()
+    for i, pdf_path in enumerate(pdf_paths, start=1):
+        pdf_path = Path(pdf_path)
+        cleaned_path = pdf_path.parent / ("Cleaned_" + pdf_path.name)
+        result = clean_pdf(
+            pdf_path,
+            output_path=cleaned_path,
+            overwrite_older_only=overwrite_older_only,
+        )
+        states[result] += 1
+        if result == "cleaned":
+            # Replace original with now-cleaned one.
+            pdf_path.unlink()
+            cleaned_path.rename(pdf_path)
+        if log_evaluated_division and i % log_evaluated_division == 0:
+            logger.info("Evaluated %s PDFs.", format(i, ",d"))
+    log_entity_states("PDFs", states, logger=logger, log_level=INFO)
+    elapsed(start_time, logger=logger)
+    logger.info("End: Clean.")
+    return states
+
+
 def convert_image_to_pdf(
     image_path: Union[Path, str],
     *,
