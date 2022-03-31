@@ -464,7 +464,6 @@ def merge_tiffs(
     *,
     output_path: Union[Path, str],
     disable_max_image_pixels: bool = False,
-    overwrite_older_only: bool = True,
 ) -> str:
     """Merge sequence of TIFF image files into a single TIFF with multiple frames.
 
@@ -473,8 +472,6 @@ def merge_tiffs(
         output_path: Path to merged TIFF image file.
         disable_max_image_pixels: If True, will disable the underlying library's maximum
             number of pixels an image can have to be processed.
-        overwrite_older_only: If True and output file already exists, will only
-            overwrite if modified date is older than source file.
 
     Returns:
         Result key--"merged", "failed to merge", or "no merge necessary".
@@ -483,25 +480,17 @@ def merge_tiffs(
         FileNotFoundError: If image file is not an extant file.
         OverflowError: If a frame in an image is corrupted or too large.
     """
-    image_paths = [Path(image_path) for image_path in image_paths]
     output_path = Path(output_path)
-    for image_path in image_paths:
-        if not image_path.is_file():
-            raise FileNotFoundError(f"Image file '{image_path}` not extant file.")
-
-    if output_path.exists():
-        if (
-            overwrite_older_only
-            and output_path.stat().st_mtime > image_path.stat().st_mtime
-        ):
-            return "no merge necessary"
-
     # img2pdf uses Pillow, which will error out if the image in question exceeds
     # MAX_IMAGE_PIXELS with `PIL.Image.DecompressionBombError`. Can disable.
     if disable_max_image_pixels:
         Image.MAX_IMAGE_PIXELS = None
     frames = []
     for image_path in image_paths:
+        image_path = Path(image_path)
+        if not image_path.is_file():
+            raise FileNotFoundError(f"Image file '{image_path}` not extant file.")
+
         with Image.open(image_path) as image:
             for i, frame in enumerate(ImageSequence.Iterator(image), start=1):
                 try:
