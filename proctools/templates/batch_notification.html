@@ -9,7 +9,7 @@
                 <th align="left">Start Time</th>
                 <th>End Time</th>
             </tr>
-            {% for run in last_run_metas %}
+            {% for run in job_last_run_records %}
                 <tr>
                     <td>{{ run["job_name"] }}</td>
                     <td>{{ run["run_status_description"] }}</td>

@@ -1,18 +1,24 @@
 """Process manager objects."""
 from datetime import datetime as _datetime
-from functools import partial
-from logging import INFO, FileHandler, Formatter, Logger, StreamHandler, getLogger
+from logging import (
+    DEBUG,
+    INFO,
+    FileHandler,
+    Formatter,
+    Logger,
+    StreamHandler,
+    getLogger,
+)
 from operator import itemgetter
 import os
 from pathlib import Path
 import sqlite3
 from types import FunctionType
-from typing import Dict
+from typing import Callable, Dict, Iterable, List, Set, Optional, Union
 
 from jinja2 import Environment, PackageLoader
 
 from proctools.communicate import extract_email_addresses, send_email_smtp
-from proctools.filesystem import create_folder
 from proctools.misc import elapsed
 from proctools.value import datetime_from_string
 
@@ -41,58 +47,70 @@ class Batch:
     """Representation of a batch of processing jobs.
 
     A batch is a group of jobs, generally related by their shared scheduling.
-
-    Attributes:
-        name (str): Name of the batch.
     """
 
-    def __init__(self, name):
+    batch_id: int
+    """ID for batch, as found in Batch table of the run results database."""
+    name: str
+    """Name of the batch."""
+
+    def __init__(self, name: str) -> None:
         """Initialize instance.
 
         Args:
-            name (str): Name of the batch.
+            name: Name of the batch.
         """
         self.name = name
         self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
 
-    @property
-    def id(self):  # pylint: disable=invalid-name
-        """int: ID for batch, as found in Batch table."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "SELECT id FROM Batch WHERE name = ?;"
-            cursor.execute(sql, [self.name])
-            return cursor.fetchone()[0]
+            cursor.execute("SELECT id FROM Batch WHERE name = ?;", [self.name])
+            self.batch_id = cursor.fetchone()[0]
 
     @property
-    def job_names(self):
-        """list of str: Names of the jobs assigned to batch."""
+    def job_names(self) -> List[str]:
+        """Names of jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "SELECT name FROM Job WHERE batch_id = ?;"
-            cursor.execute(sql, [self.id])
+            cursor.execute("SELECT name FROM Job WHERE batch_id = ?;", [self.batch_id])
             return [name for name, in cursor.fetchall()]
 
     @property
-    def last_job_run_metas(self):
-        """list of dict: Metadata dictionaries for last job-runs."""
+    def job_last_run_records(self) -> List[Dict[str, Union[_datetime, int, str]]]:
+        """List of dictionaries for last run records for jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "SELECT * FROM Last_Job_Run WHERE batch_id = ?;"
-            cursor.execute(sql, [self.id])
-            metas = [
+            cursor.execute(
+                "SELECT * FROM Last_Job_Run WHERE batch_id = ?;", [self.batch_id]
+            )
+            records = [
                 {column[0]: value for column, value in zip(cursor.description, row)}
                 for row in cursor
             ]
             # Coerce timestamps to datetime--no sqlite3 date/time types, using text.
-            for run_meta in metas:
+            for record in records:
                 for key in ["start_time", "end_time"]:
-                    run_meta[key] = datetime_from_string(run_meta[key])
-        return metas
+                    record[key] = datetime_from_string(record[key])
+        return records
 
     @property
-    def notification_addresses(self):
-        """dict: Mapping of type to list of email addresses for notification."""
+    def job_last_run_start_times(self) -> Set[_datetime]:
+        """Set of last-run start times for jobs in the batch."""
+        with self._conn:
+            cursor = self._conn.cursor()
+            cursor.execute(
+                "SELECT start_time FROM Last_Job_Run WHERE batch_id = ?;",
+                [self.batch_id],
+            )
+            times = {datetime_from_string(start_time) for start_time, in cursor}
+            if None in times:
+                times.remove(None)
+        return times
+
+    @property
+    def notification_addresses(self) -> Dict[str, List[str]]:
+        """Mapping of type to list of email addresses for notification."""
         with self._conn:
             cursor = self._conn.cursor()
             sql = """
@@ -116,166 +134,157 @@ class Batch:
             return addresses
 
     @property
-    def start_times(self):
-        """set of tuples: Collection of tuples containing all last start times."""
+    def status(self) -> int:
+        """Status code for current batch run."""
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "SELECT start_time FROM Last_Job_Run WHERE batch_id = ?;"
-            cursor.execute(sql, [self.id])
-            times = {datetime_from_string(start_time) for start_time, in cursor}
-            if None in times:
-                times.remove(None)
-        return times
+            cursor.execute(
+                "SELECT status FROM Last_Job_Run WHERE batch_id = ?;", [self.batch_id]
+            )
+            return 1 if all(status == 1 for status, in cursor) else -1
 
     @property
-    def status(self):
-        """int: status ID for current batch run."""
-        with self._conn:
-            cursor = self._conn.cursor()
-            sql = "SELECT status FROM Last_Job_Run WHERE batch_id = ?;"
-            cursor.execute(sql, [self.id])
-            return 1 if all(row[0] == 1 for row in cursor) else -1
-
-    @property
-    def status_description(self):
-        """str: status description for current batch run."""
+    def status_description(self) -> str:
+        """Status description for current batch run."""
         return RUN_STATUS_DESCRIPTION[self.status]
 
-    def send_notification(self, host, from_address, **kwargs):
+    def send_notification(
+        self,
+        *,
+        from_address: str,
+        host: str,
+        port: int = 25,
+        password: Optional[str] = None,
+    ) -> None:
         """Send email notification for batch.
 
         Args:
-            host (str, None): Host name of SMTP server.
-            from_address (str): Email address for sender.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Kwargs:
-            See keyword arguments for `proctools.communicate.send_email_smtp`.
+            from_address: Email address for sender.
+            host: Host name of SMTP server.
+            port: Port to connect to SMTP host on.
+            password: Password for authentication with host.
         """
-        if any(
+        if not any(
             addresses
             for key, addresses in self.notification_addresses.items()
             if key in ["to_addresses", "copy_addresses", "blind_copy_addresses"]
         ):
-            env = Environment(loader=PackageLoader("proctools", "templates"))
-            template = env.get_template("batch_notification.html")
-            last_run_metas = sorted(
-                self.last_job_run_metas,
-                key=itemgetter("start_time", "end_time"),
-                reverse=True,
-            )
-            kwargs.update(self.notification_addresses)
-            kwargs["subject"] = "Processing Batch: {} ({})".format(
-                self.name, self.status_description
-            )
-            kwargs["body"] = template.render(last_run_metas=last_run_metas)
-            send_email_smtp(
-                from_address=from_address,
-                to_addresses=kwargs.get("to_addresses"),
-                copy_addresses=kwargs.get("copy_addresses"),
-                blind_copy_addresses=kwargs.get("blind_copy_addresses"),
-                reply_to_addresses=kwargs.get("reply_to_addresses"),
-                subject=kwargs["subject"],
-                body=kwargs["body"],
-                body_type="html",
-                attachment_paths=kwargs.get("attachment_paths"),
-                host=host,
-                port=kwargs.get("port", 25),
-                password=kwargs.get("password"),
-            )
+            LOG.info("No recipients for notification; not sending.")
+            return
+
+        env = Environment(loader=PackageLoader("proctools", "templates"))
+        template = env.get_template("batch_notification.html")
+        records = sorted(
+            self.job_last_run_records,
+            key=itemgetter("start_time", "end_time"),
+            reverse=True,
+        )
+        send_email_smtp(
+            from_address=from_address,
+            **self.notification_addresses,
+            subject=f"Processing Batch: {self.name} ({self.status_description})",
+            body=template.render(job_last_run_records=records),
+            body_type="html",
+            host=host,
+            port=port,
+            password=password,
+        )
 
 
 class Job:
     """Representation of pipeline processing job.
 
-    A job is an named & ordered sequence of processes to execute in a pipeline.
-
-    Attributes:
-        name (str): Name of the job.
-        procedures (list): Ordered collection of procedures attached to job.
-        run_id (int): ID value from Job_Run table in exec-results database. If
-            job run has not yet been initiated, value is None.
+    A job is a named & ordered sequence of processes to execute in a pipeline.
     """
 
-    def __init__(self, name, procedures=None):
+    job_id: int
+    """ID for job, as found in Job table of the run results database."""
+    name: str
+    """Name of the job."""
+    procedures: list
+    """Sequence of procedures attached to job."""
+    run_id: Union[int, None] = None
+    """ID for job run, as found in Job_Run table of the run results database.
+
+    If run has not yet been initiated, value is None.
+    """
+
+    def __init__(
+        self, name: str, procedures: Optional[Iterable[Callable]] = None
+    ) -> None:
         """Initialize instance.
 
         Args:
-            name (str): Name of the job.
-            procedures (iter, None): Collection of procedures to attach to job. If None,
-                `self.procedures` will init as empty list.
+            name: Name of the job.
+            procedures: Sequence of procedures attached to job
         """
         self.name = name
-        self.procedures = list(procedures) if procedures else []
-        self.run_id = None
+        self.procedures = list(procedures) if procedures is not None else []
         self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
+        with self._conn:
+            cursor = self._conn.cursor()
+            cursor.execute("SELECT id FROM Job WHERE name = ?;", [self.name])
+            self.job_id = cursor.fetchone()[0]
         LOG.info("Initialized job instance for `%s`.", self.name)
 
     @property
-    def id(self):  # pylint: disable=invalid-name
-        """int: ID for job, as found in Job table."""
-        with self._conn:
-            cursor = self._conn.cursor()
-            sql = "SELECT id FROM Job WHERE name = ?;"
-            cursor.execute(sql, [self.name])
-            return cursor.fetchone()[0]
+    def run_status(self) -> Union[int, None]:
+        """Run status code for job-run, as found in Job_Run table.
 
-    @property
-    def run_status(self):
-        """int: Run status for job-run, as found in Job_Run table.
-
-        See RUN_STATUS_DESCRIPTION for valid status codes.
+        If run has not yet been initiated, value is None.
         """
         if self.run_id is None:
             return None
 
         with self._conn:
             cursor = self._conn.cursor()
-            sql = "SELECT status FROM Job_Run WHERE id = ?;"
-            cursor.execute(sql, [self.run_id])
+            cursor.execute("SELECT status FROM Job_Run WHERE id = ?;", [self.run_id])
             return cursor.fetchone()[0]
 
     @run_status.setter
-    def run_status(self, value):
+    def run_status(self, value: int) -> None:
         if value not in RUN_STATUS_DESCRIPTION:
             raise ValueError(f"{value} not a valid status code")
 
         if self.run_id is None:
             start_time = _datetime.now().isoformat(" ")
             with self._conn:
-                sql = """
-                    INSERT INTO Job_Run(status, job_id, start_time) VALUES (?, ?, ?);
-                """
-                self._conn.execute(sql, [value, self.id, start_time])
+                self._conn.execute(
+                    "INSERT INTO Job_Run(status, job_id, start_time) VALUES (?, ?, ?);",
+                    [value, self.job_id, start_time],
+                )
             with self._conn:
                 cursor = self._conn.cursor()
-                sql = "SELECT id FROM Job_Run WHERE job_id = ? AND start_time = ?;"
-                cursor.execute(sql, [self.id, start_time])
+                cursor.execute(
+                    "SELECT id FROM Job_Run WHERE job_id = ? AND start_time = ?;",
+                    [self.job_id, start_time],
+                )
                 self.run_id = cursor.fetchone()[0]
         else:
             end_time = None if value == -1 else _datetime.now().isoformat(" ")
             with self._conn:
-                sql = """
-                    UPDATE Job_Run SET status = ?, end_time = ? WHERE id = ?;
-                """
-                self._conn.execute(sql, [value, end_time, self.run_id])
+                self._conn.execute(
+                    "UPDATE Job_Run SET status = ?, end_time = ? WHERE id = ?;",
+                    [value, end_time, self.run_id],
+                )
 
 
 class Pipeline:
-    """Representation of an processing pipeline.
+    """Representation of a processing pipeline."""
 
-    Attributes:
-        members (tuple): Ordered collection of pipeline execution members.
-    """
+    members: tuple
+    """Sequence of executable members attached to pipeline."""
 
     @staticmethod
-    def init_logger(member_name, file_mode="a", file_level=None):
-        """Initialize logger.
+    def init_logger(
+        member_name: str, file_mode: str = "a", file_level: int = INFO
+    ) -> Logger:
+        """Initialize & return logger.
 
         Args:
-            member_name (str): Name of pipeline member.
-            file_mode (str): File mode to write logfile in.
-            file_level (int, None): Log level above which to log to file.
+            member_name: Name of pipeline member.
+            file_mode: File mode to write logfile in.
+            file_level: Log level above which to log to file.
         """
         logger = getLogger()
         logger.setLevel(INFO)
@@ -289,55 +298,53 @@ class Pipeline:
         console_handler.setLevel(INFO)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        create_folder(LOGS_PATH, create_parents=True, exist_ok=True)
-        file_handler = FileHandler(
-            filename=LOGS_PATH / (member_name + ".log"), mode=file_mode
-        )
-        file_handler.setLevel(file_level if file_level else INFO)
+        LOGS_PATH.mkdir(parents=True, exist_ok=True)
+        log_path = LOGS_PATH / f"{member_name}.log"
+        file_handler = FileHandler(filename=log_path, mode=file_mode)
+        file_handler.setLevel(file_level)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
         return logger
 
-    def __init__(self, *members):
+    def __init__(self, *members: Union[FunctionType, Job]) -> None:
         """Initialize instance.
 
         Args:
-            *members: Ordered collection of pipeline execution members.
+            *members: Sequence of executable members attached to pipeline.
         """
         self.members = members
 
-    def execute(self):
-        """Execute pipeline members."""
+    def execute(self) -> None:
+        """Execute pipeline members.
+
+        Raises:
+            TypeError: If a member is an invalid member type.
+        """
         for member in self.members:
             start_time = _datetime.now()
             if isinstance(member, Job):
-                meta = {
-                    "name": member.name,
-                    "type": "job",
-                    "procedures": member.procedures,
-                }
+                member_name = member.name
+                member_type = "job"
+                procedures = member.procedures
                 member.run_status = -1
-            # Functions are assumed to be non-job standalone pipeline members.
-            elif isinstance(member, (FunctionType, partial)):
-                meta = {
-                    "name": getattr(member, "__name__", "Unnamed Procedure"),
-                    "type": "procedure",
-                    "procedures": [member],
-                }
+            # Callables are assumed to be procedures.
+            elif isinstance(member, FunctionType):
+                member_name = getattr(member, "__name__", "Unnamed Procedure")
+                member_type = "procedure"
+                procedures = [member]
             else:
-                raise ValueError("Invalid pipeline member type")
+                raise TypeError("Invalid pipeline member type")
 
-            log = self.init_logger(meta["name"], file_mode="w", file_level=10)
-            log.info("Starting %s: %s.", meta["type"], meta["name"])
-            for procedure in meta["procedures"]:
+            log = self.init_logger(member_name, file_mode="w", file_level=DEBUG)
+            log.info("Starting %s: %s.", member_type, member_name)
+            for procedure in procedures:
                 try:
                     procedure()
                 except Exception:
                     log.exception("Unhandled exception")
                     raise
 
-            meta["status"] = 1
-            if meta["type"] == "job":
-                member.run_status = meta["status"]
+            if member_type == "job":
+                member.run_status = 1
             elapsed(start_time, logger=log)
-            log.info("%s %s.", meta["name"], RUN_STATUS_DESCRIPTION[meta["status"]])
+            log.info("%s %s.", member_name, RUN_STATUS_DESCRIPTION[1])

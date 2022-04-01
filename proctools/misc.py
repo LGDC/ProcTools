@@ -38,10 +38,7 @@ def elapsed(
     Args:
         start_time: Starting point to measure time elapsed since.
         logger: Logger to emit elapsed message.
-        log_level (int): Level to log elapsed message at.
-
-    Returns:
-        datetime.timedelta
+        log_level: Level to log elapsed message at.
     """
     delta = _datetime.now() - start_time
     if logger:
