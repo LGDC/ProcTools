@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional, Union
 import arcproc
 from arcproc.metadata import Dataset as _Dataset
 
-from .meta import Dataset2  # pylint: disable=relative-beyond-top-level
+from .metadata import Dataset2  # pylint: disable=relative-beyond-top-level
 from . import value  # pylint: disable=relative-beyond-top-level
 
 
