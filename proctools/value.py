@@ -351,7 +351,7 @@ def max_value(*values: Any) -> Any:
         *values: Values to compare.
     """
     values = [value for value in values if value is not None]
-    return max(*values) if values else None
+    return max(values) if values else None
 
 
 def min_value(*values: Any) -> Any:
