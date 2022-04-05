@@ -1,10 +1,8 @@
 """Metadata objects."""
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime as _datetime
-from itertools import chain
 from logging import Logger, getLogger
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any, Iterable, List, Optional
 from urllib.parse import quote_plus
 
 from sqlalchemy import create_engine
@@ -238,19 +236,3 @@ class Dataset:
             geometry_type=self.geometry_type,
             spatial_reference_item=spatial_reference_wkid,
         )
-
-
-def dataset_last_change_date(
-    dataset_path: Union[Path, str], date_changed_field_names: Iterable[str]
-) -> Union[date, _datetime, None]:
-    """Return date of the last change on dataset with tracking fields.
-
-    Args:
-        dataset_path: Path to dataset.
-        change_date_field_names: Names of fields that record change-dates.
-    """
-    date_tuples = arcproc.features.as_tuples(
-        dataset_path, field_names=date_changed_field_names
-    )
-    dates = {_date for _date in chain.from_iterable(date_tuples) if _date}
-    return max(dates) if dates else None
