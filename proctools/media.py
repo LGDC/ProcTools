@@ -477,6 +477,7 @@ def merge_tiffs(
                         f"Frame {i} of `{image_path}` corrupted or too large"
                     ) from error
 
-    frames[0].save(output_path, save_all=True, append_images=frames[1:])
+    # Py3.7: Convert Path to str.
+    frames[0].save(str(output_path), save_all=True, append_images=frames[1:])
     result = "merged"
     return result
