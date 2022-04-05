@@ -1,13 +1,15 @@
 """Metadata objects."""
 from dataclasses import asdict, dataclass, field
+from datetime import date, datetime as _datetime
 from itertools import chain
-import logging
+from logging import Logger, getLogger
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterable, List, Optional, Union
 from urllib.parse import quote_plus
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
 
 import arcproc
 
@@ -16,85 +18,87 @@ from proctools.misc import sql_server_odbc_string
 
 __all__ = []
 
-LOG = logging.getLogger(__name__)
-"""logging.Logger: Module-level logger."""
+LOG: Logger = getLogger(__name__)
+"""Module-level logger."""
 
 
+@dataclass
 class Database:
-    """Representation of database information.
+    """Representation of database information."""
 
-    Attributes:
-        data_schema_names (set of str): Collection of data schema names.
-        host (str): Name & port configuration of the instance host.
-        name (str): Name of the database.
+    name: str
+    """Name of the database."""
+    hostname: str
+    """Name of database instance host."""
+    port: Optional[int] = None
+    """Port to connect to instance on."""
+    data_schema_names: Iterable[str] = field(default_factory=set)
+    """Collection of data schema names.
+
+    Often used to identify which owned schemas need compressing.
     """
 
-    def __init__(self, name, host, **kwargs):
-        """Initialize instance.
+    def __post_init__(self) -> None:
+        """Post-initialization."""
+        self.data_schema_names = set(self.data_schema_names)
 
-        Args:
-            name (str): Name of the database.
-            host (str): Name of the SQL Server instance host. If indicating a port, add
-                to host name after a comma.
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            data_schema_names (iter of str): Collection of data schema names. Often used
-                to identify which owned schemas need compressing. Default is empty set.
-        """
-        self.name = name
-        self.host = host
-        self.data_schema_names = set(kwargs.get("data_schema_names", set()))
-        self._sqlalchemy = {}
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r}, host={self.host!r})"
 
     @property
-    def hostname(self):
-        """str: Name of the instance host."""
-        return self.host.split(",")[0]
+    def host(self) -> str:
+        """Name & port configuration of database instance host."""
+        return f"{self.hostname},{self.port}"
 
-    def create_session(self, username=None, password=None, **kwargs):
+    def create_session(
+        self,
+        *,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        application_name: Optional[str] = None,
+        read_only: bool = False,
+    ) -> Session:
         """Return SQLAlchemy session instance to database.
 
         Args:
-            username (str): Name of user for credential (optional).
-            password (str): Password for credential (optional).
-            **kwargs: Arbitrary keyword arguments. See below.
-
-        Keyword Args:
-            See keyword args listed for `sql_server_odbc_string` function.
-
-        Returns:
-            sqlalchemy.orm.session.Session
+            username: Name of user for authentication with instance.
+            password: Password for authentication with instance.
+            application_name: Name of application to represent connection as being from.
+            read_only: Application intent is for read-only workload if True.
         """
-        if "application" in kwargs:
-            kwargs["application_name"] = kwargs.pop("application")
-        odbc_string = self.get_odbc_string(username, password, **kwargs)
-        url = self._sqlalchemy.setdefault(
-            "url", f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_string)}"
+        odbc_string = self.get_odbc_string(
+            username=username,
+            password=password,
+            application_name=application_name,
+            read_only=read_only,
         )
-        engine = self._sqlalchemy.setdefault("engine", create_engine(url))
-        return self._sqlalchemy.setdefault(
-            "SessionFactory", sessionmaker(bind=engine)
-        )()
+        url = f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_string)}"
+        engine = create_engine(url)
+        return sessionmaker(bind=engine)()
 
-    def get_odbc_string(self, username=None, password=None, **kwargs):
+    def get_odbc_string(
+        self,
+        *,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        application_name: Optional[str] = None,
+        read_only: bool = False,
+    ) -> str:
         """Return String necessary for ODBC connection.
 
         Args:
-            username (str): Name of user for credential (optional).
-            password (str): Password for credential (optional).
-
-        Keyword Args:
-            See keyword args listed for `sql_server_odbc_string` function.
-
-        Returns:
-            str
+            username: Name of user for authentication with instance.
+            password: Password for authentication with instance.
+            application_name: Name of application to represent connection as being from.
+            read_only: Application intent is for read-only workload if True.
         """
         return sql_server_odbc_string(
-            self.host, self.name, username=username, password=password, **kwargs
+            host=self.host,
+            database_name=self.name,
+            username=username,
+            password=password,
+            application_name=application_name,
+            read_only=read_only,
         )
 
 
@@ -105,7 +109,7 @@ class Field:
     name: str
     """Name of the field."""
     type: str = "String"
-    """Field type (case insensitve). See valid_types property for possible values. """
+    """Field type (case insensitve). See `valid_types` property for possible values. """
     length: int = 32
     "String field length."
     precision: int = 0
@@ -128,24 +132,33 @@ class Field:
     source_only: bool = False
     """Field resides on the source dataset(s) only if True."""
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r}, type={self.type!r})"
+
 
 @dataclass
-class Dataset2:
+class Dataset:
     """Representation of dataset information."""
 
-    fields: "list[Field]" = field(default_factory=list)
-    """List of field information objects."""
+    fields: List[Field] = field(default_factory=list)
+    """Dataset field information objects."""
     geometry_type: Optional[str] = None
     """Type of geometry. NoneType indicates nonspatial."""
     path: Optional[Path] = None
     """Path to dataset."""
     source_path: Optional[Path] = None
     "Path to source dataset."
-    source_paths: Optional["list[Path]"] = field(default_factory=list)
-    "Paths to source dataset."
+    source_paths: Optional[List[Path]] = field(default_factory=list)
+    "Paths to source datasets."
+
+    def __fspath__(self) -> str:
+        return str(self.path)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(path={self.path!r})"
 
     @property
-    def field_names(self) -> "list[str]":
+    def field_names(self) -> List[str]:
         """Dataset field names."""
         return [field.name for field in self.fields]
 
@@ -160,32 +173,32 @@ class Dataset2:
         return self.id_field_names[0] if len(self.id_field_names) == 1 else None
 
     @property
-    def id_field_names(self) -> "list[str]":
+    def id_field_names(self) -> List[str]:
         """Dataset identifier field names."""
         return [field.name for field in self.id_fields]
 
     @property
-    def id_fields(self) -> "list[Field]":
+    def id_fields(self) -> List[Field]:
         """Dataset identifier field information objects."""
         return [field for field in self.fields if field.is_id]
 
     @property
-    def out_field_names(self) -> "list[str]":
+    def out_field_names(self) -> List[str]:
         """Output dataset field names."""
         return [field.name for field in self.out_fields]
 
     @property
-    def out_fields(self) -> "list[Field]":
+    def out_fields(self) -> List[Field]:
         """Output dataset field information objects."""
         return [field for field in self.fields if not field.source_only]
 
     @property
-    def source_field_names(self) -> "list[str]":
+    def source_field_names(self) -> List[str]:
         """Source dataset field names."""
         return [field.name for field in self.source_fields]
 
     @property
-    def source_fields(self) -> "list[Field]":
+    def source_fields(self) -> List[Field]:
         """Source dataset field information objects."""
         return [
             field
@@ -193,11 +206,9 @@ class Dataset2:
             if field.source_only or not field.not_in_source
         ]
 
-    def __fspath__(self) -> str:
-        return str(self.path)
-
     def create(
         self,
+        *,
         create_source: bool = False,
         override_path: Optional[Path] = None,
         spatial_reference_wkid: Optional[int] = None,
@@ -209,6 +220,9 @@ class Dataset2:
             override_path: Path to use instead of assoicated path.
             spatial_reference_wkid: Well-known ID for the spatial reference to apply. If
                 None, dataset created will be nonspatial.
+
+        Returns:
+            Path to dataset.
         """
         dataset_path = self.source_path if create_source else self.path
         dataset_path = override_path if override_path else dataset_path
@@ -227,23 +241,16 @@ class Dataset2:
 
 
 def dataset_last_change_date(
-    dataset_path, init_date_field_name="init_date", mod_date_field_name="mod_date"
-):
+    dataset_path: Union[Path, str], date_changed_field_names: Iterable[str]
+) -> Union[date, _datetime, None]:
     """Return date of the last change on dataset with tracking fields.
 
     Args:
-        dataset_path (pathlib.Path, str): Path of the dataset.
-        init_date_field_name (str): Name of the initial edit/create date field.
-        mod_date_field_name (str): Name of the last edit/modification date field.
-
-    Returns:
-
+        dataset_path: Path to dataset.
+        change_date_field_names: Names of fields that record change-dates.
     """
-    date_iters = arcproc.features.as_tuples(
-        dataset_path, field_names=[init_date_field_name, mod_date_field_name]
+    date_tuples = arcproc.features.as_tuples(
+        dataset_path, field_names=date_changed_field_names
     )
-    dates = set(chain.from_iterable(date_iters))
-    # datetimes cannot compare to NoneTypes.
-    if None in dates:
-        dates.remove(None)
+    dates = {_date for _date in chain.from_iterable(date_tuples) if _date}
     return max(dates) if dates else None

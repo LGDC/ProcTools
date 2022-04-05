@@ -9,7 +9,7 @@ from typing import Any, Iterable, Optional, Union
 import arcproc
 from arcproc.metadata import Dataset as _Dataset
 
-from .metadata import Dataset2  # pylint: disable=relative-beyond-top-level
+from .metadata import Dataset  # pylint: disable=relative-beyond-top-level
 from . import value  # pylint: disable=relative-beyond-top-level
 
 
@@ -26,12 +26,12 @@ def add_missing_fields(dataset, dataset_metadata, tags=None, from_source=False):
     Args:
         dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
             Procedure instance.
-        dataset_metadata (proctools.meta.Dataset2)
+        dataset_metadata (proctools.metadata.Dataset)
         tags (iter, None): Collection of tags a field must have one of in metadata for
             field to be added. If tags is None, all fields listed in metadata are added.
         from_source (bool): Add fields from source dataset if True.
     """
-    if isinstance(dataset_metadata, Dataset2):
+    if isinstance(dataset_metadata, Dataset):
         add_field_keys = [
             "name",
             "type",
