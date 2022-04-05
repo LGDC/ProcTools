@@ -1,7 +1,7 @@
 """ArcGIS Online & other portal objects."""
 from collections import Counter
 from datetime import datetime as _datetime
-import logging
+from logging import DEBUG, Logger, getLogger
 from pathlib import Path
 from tempfile import gettempdir
 from time import sleep
@@ -19,7 +19,7 @@ from proctools.misc import log_entity_states
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 
@@ -195,15 +195,15 @@ def upload_dataset_as_geodatabase(
         Uploaded file geodatabase item.
     """
     geodatabase_path = Path(gettempdir(), geodatabase_name)
-    arcproc.workspace.create_file_geodatabase(geodatabase_path, log_level=logging.DEBUG)
+    arcproc.workspace.create_file_geodatabase(geodatabase_path, log_level=DEBUG)
     # Remove enterprise DB schema.
     if Workspace(dataset_path.parent).is_enterprise_database:
         dataset_name = dataset_path.name.split(".", maxsplit=1)[-1]
     else:
         dataset_name = dataset_path.name
     output_path = geodatabase_path / dataset_name
-    arcproc.dataset.copy(dataset_path, output_path=output_path, log_level=logging.DEBUG)
-    arcproc.dataset.compress(output_path, log_level=logging.DEBUG)
+    arcproc.dataset.copy(dataset_path, output_path=output_path, log_level=DEBUG)
+    arcproc.dataset.compress(output_path, log_level=DEBUG)
     zip_filepath = geodatabase_path.with_suffix(".zip")
     archive_folder(
         folder_path=geodatabase_path,
@@ -211,7 +211,7 @@ def upload_dataset_as_geodatabase(
         exclude_patterns=[".lock", ".zip"],
         include_base_folder=True,
     )
-    arcproc.dataset.delete(geodatabase_path, log_level=logging.DEBUG)
+    arcproc.dataset.delete(geodatabase_path, log_level=DEBUG)
     # pylint: disable=no-member
     geodatabase = site.content.add(
         item_properties={"type": "File Geodatabase", "tags": tags},
