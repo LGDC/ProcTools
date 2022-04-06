@@ -221,8 +221,9 @@ def force_title_case(
 
     Args:
         value: Value to convert.
-        part_correction: Mapping of word or other string part to title-case correction.
-            Key must already be in title-cased style (i.e. key = `key.title()`).
+        part_correction: Mapping of word or other string part to specific output
+            correction of base title-casing. Word key must already be in title-cased
+            style (i.e. `key == key.title()`).
     """
     if not value:
         return value
