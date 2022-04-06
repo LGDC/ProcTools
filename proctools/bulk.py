@@ -133,6 +133,33 @@ def bulk_clean_whitespace(
     )
 
 
+def bulk_enforce_yn_values(
+    dataset: Union[Path, str, Procedure],
+    *,
+    field_names: Iterable[str],
+    default: Union[str, None] = None,
+    use_edit_session: bool = False,
+) -> Counter:
+    """Enforce usage of only "Y" or "N" in field values.
+
+    Args:
+        dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
+            Procedure instance.
+        field_names: Names of fields to update.
+        default: Value to change non-YN values to.
+        use_edit_session: True if edits are to be made in an edit session.
+
+    Returns:
+        Attribute counts for each update-state.
+    """
+    return bulk_update_values_by_function(
+        dataset,
+        field_names=field_names,
+        function=partial(force_yn, default=default),
+        use_edit_session=use_edit_session,
+    )
+
+
 def bulk_make_values_lowercase(
     dataset: Union[Path, str, Procedure],
     *,
@@ -205,33 +232,6 @@ def bulk_make_values_uppercase(
         dataset,
         field_names=field_names,
         function=force_uppercase,
-        use_edit_session=use_edit_session,
-    )
-
-
-def bulk_enforce_yn_values(
-    dataset: Union[Path, str, Procedure],
-    *,
-    field_names: Iterable[str],
-    default: Union[str, None] = None,
-    use_edit_session: bool = False,
-) -> Counter:
-    """Enforce usage of only "Y" or "N" in field values.
-
-    Args:
-        dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
-            Procedure instance.
-        field_names: Names of fields to update.
-        default: Value to change non-YN values to.
-        use_edit_session: True if edits are to be made in an edit session.
-
-    Returns:
-        Attribute counts for each update-state.
-    """
-    return bulk_update_values_by_function(
-        dataset,
-        field_names=field_names,
-        function=partial(force_yn, default=default),
         use_edit_session=use_edit_session,
     )
 
