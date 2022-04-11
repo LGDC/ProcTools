@@ -152,7 +152,7 @@ def randomized(iterable: Iterable[Any]) -> Iterator[Any]:
 
 
 def sql_server_odbc_string(
-    host: str,
+    hostname: str,
     database_name: Optional[str] = None,
     *,
     port: Optional[int] = None,
@@ -171,7 +171,7 @@ def sql_server_odbc_string(
             fail or prompt for credentials.
 
     Args:
-        host: Host name of SQL Server instance.
+        hostname: Host name of SQL Server instance.
         database_name: Name of database to begin session in.
         port: Port to connect to instance on.
         username: Name of user for authentication with instance.
@@ -180,7 +180,7 @@ def sql_server_odbc_string(
         driver_string: ODBC string for driver & version.
         read_only: Application intent is for read-only workload if True.
     """
-    host = host if port is None else f"{host},{port}"
+    host = hostname if port is None else f"{hostname},{port}"
     odbc_string = f"Driver={driver_string};Server={host};"
     if database_name:
         odbc_string += f"Database={database_name};"

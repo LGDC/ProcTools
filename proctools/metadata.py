@@ -46,7 +46,7 @@ class Database:
     @property
     def host(self) -> str:
         """Name & port configuration of database instance host."""
-        return f"{self.hostname},{self.port}"
+        return self.hostname if self.port is None else f"{self.hostname},{self.port}"
 
     def create_session(
         self,
@@ -91,8 +91,9 @@ class Database:
             read_only: Application intent is for read-only workload if True.
         """
         return sql_server_odbc_string(
-            host=self.host,
+            hostname=self.hostname,
             database_name=self.name,
+            port=self.port,
             username=username,
             password=password,
             application_name=application_name,
