@@ -48,6 +48,24 @@ class Database:
         """Name & port configuration of database instance host."""
         return self.hostname if self.port is None else f"{self.hostname},{self.port}"
 
+    def create_oracle_session(self, *, username: str, password: str) -> Session:
+        """Return SQLAlchemy session instance to Oracle database.
+
+        Args:
+            username: Name of user for authentication with instance.
+            password: Password for authentication with instance.
+            application_name: Name of application to represent connection as being from.
+            dialect: SQL dialect to connect with.
+            driver_name: Name of driver to use for connection.
+            read_only: Application intent is for read-only workload if True.
+        """
+        url = f"oracle+cx_oracle://{username}:{password}@{self.hostname}"
+        if self.port:
+            url += f":{self.port}"
+        url += f"/{self.name}"
+        engine = create_engine(url, max_identifier_length=128)
+        return sessionmaker(bind=engine)()
+
     def create_session(
         self,
         *,
@@ -82,7 +100,7 @@ class Database:
         application_name: Optional[str] = None,
         read_only: bool = False,
     ) -> str:
-        """Return String necessary for ODBC connection.
+        """Return string necessary for ODBC connection.
 
         Args:
             username: Name of user for authentication with instance.
