@@ -5,7 +5,7 @@ from logging import DEBUG, Logger, getLogger
 from pathlib import Path
 from tempfile import gettempdir
 from time import sleep
-from typing import Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from arcgis.gis import GIS, Item
 from arcgis.features import FeatureLayer, Table
@@ -123,7 +123,7 @@ def get_layer(
     return layer
 
 
-def load_feature_layer(configuration: dict, site: GIS) -> Counter:
+def load_feature_layer(configuration: Mapping[str, Any], site: GIS) -> Counter:
     """Load the ArcGIS site feature layer corresponding to the source dataset.
 
     Args:

@@ -201,7 +201,7 @@ class Job:
     """ID for job, as found in Job table of the run results database."""
     name: str
     """Name of the job."""
-    procedures: list
+    procedures: List[FunctionType]
     """Sequence of procedures attached to job."""
     run_id: Union[int, None] = None
     """ID for job run, as found in Job_Run table of the run results database.
