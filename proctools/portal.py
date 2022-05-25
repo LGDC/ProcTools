@@ -5,9 +5,9 @@ from logging import DEBUG, Logger, getLogger
 from pathlib import Path
 from tempfile import gettempdir
 from time import sleep
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 
-from arcgis.gis import GIS, Item
+from arcgis.gis import GIS, Item, User
 from arcgis.features import FeatureLayer, Table
 
 import arcproc
@@ -74,6 +74,39 @@ def delete_layer_features(
     return before_delete_count - layer.query(return_count_only=True)
 
 
+def get_item(
+    site: GIS, item_name: str, exclude_item_types: Optional[Iterable[str]] = None
+) -> Item:
+    """Return Item from ArcGIS site.
+
+    Requires item name to be unique.
+
+    Args:
+        site: ArcGIS site to search.
+        item_name: Name of layer to return.
+        exclude_item_types: Listing of item types to exclude.
+    """
+    if exclude_item_types is None:
+        exclude_item_types = set()
+    else:
+        exclude_item_types = set(exclude_item_types)
+    query = f"""title:"{item_name}\""""
+    items = [
+        item
+        for item in site.content.search(query, max_items=100)
+        if item.title == item_name and item.type not in exclude_item_types
+    ]
+    if len(items) == 1:
+        item = items[0]
+    else:
+        raise ValueError(
+            f"Item `{item_name}` "
+            + ("does not exist" if len(items) == 0 else "name not unique")
+            + f" on {site.url}"
+        )
+    return item
+
+
 def get_layer(
     site: GIS, layer_name: str, collection_name: Optional[str] = None
 ) -> Union[FeatureLayer, Table]:
@@ -121,6 +154,28 @@ def get_layer(
             + f" in `{collection_name} collection"
         )
     return layer
+
+
+def get_user(site: GIS, username: str) -> User:
+    """Return User from ArcGIS site.
+
+    Requires username to be unique.
+
+    Args:
+        site: ArcGIS site to search.
+        username: Name of user to return.
+    """
+    query = f"""username:"{username}\""""
+    users = [user for user in site.users.search(query) if user.username == username]
+    if len(users) == 1:
+        user = users[0]
+    else:
+        raise ValueError(
+            f"User `{username}` "
+            + ("does not exist" if len(users) == 0 else "name not unique")
+            + f" on {site.url}"
+        )
+    return user
 
 
 def load_feature_layer(configuration: Mapping[str, Any], site: GIS) -> Counter:
