@@ -8,7 +8,7 @@ from time import sleep
 from typing import Any, Iterable, Mapping, Optional, Union
 
 from arcgis.gis import GIS, Item, User
-from arcgis.features import FeatureLayer, Table
+from arcgis.features import Feature, FeatureLayer, Table
 
 import arcproc
 from arcproc.metadata import Workspace
@@ -227,6 +227,23 @@ def load_feature_layer(configuration: Mapping[str, Any], site: GIS) -> Counter:
     log_entity_states("layer features", update_count, logger=LOG)
     LOG.info("End: Load.")
     return update_count
+
+
+def update_feature_attribute(feature: Feature, field_name: str, *, value: Any) -> bool:
+    """Update field attribute value on feature if necessary & return True if updated.
+
+    Attributes:
+        feature: Feature object to potentially update.
+        field_name: Name of field to update attribute value.
+        value: Value to use for update.
+    """
+    if feature.get_value(field_name) != value:
+        # set_value cannot change a populated value to None/NULL. Use as_dict setter.
+        # return feature.set_value(field_name, value)
+        feature.as_dict["attributes"][field_name] = value
+        return True
+
+    return False
 
 
 def upload_dataset_as_geodatabase(
