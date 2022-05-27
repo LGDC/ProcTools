@@ -1,18 +1,17 @@
 """File system objects."""
-from collections import Counter
-from contextlib import ContextDecorator
-from datetime import datetime as _datetime
 import filecmp
 import logging
-from pathlib import Path
 import shutil
 import stat
 import subprocess
+from collections import Counter
+from contextlib import ContextDecorator
+from datetime import datetime as _datetime
+from pathlib import Path
 from types import TracebackType
 from typing import Iterable, Iterator, Optional, Type, TypeVar, Union
 from zipfile import ZIP_DEFLATED, BadZipfile, ZipFile
 
-# Py3.7: pairwise added to standard library itertools in 3.10.
 from more_itertools import pairwise
 
 from proctools.misc import elapsed, log_entity_states
@@ -27,9 +26,9 @@ LOG: logging.Logger = logging.getLogger(__name__)
 TNetUse = TypeVar("TNetUse", bound="NetUse")
 """Type variable to enable method return of self on NetUse."""
 
-SEVEN_ZIP_PATH: Path = Path(
-    __file__
-).parent.parent / "resources\\apps\\7_Zip\\x64\\7za.exe"
+SEVEN_ZIP_PATH: Path = (
+    Path(__file__).parent.parent / "resources\\apps\\7_Zip\\x64\\7za.exe"
+)
 """Path to 7-Zip command-line app."""
 
 

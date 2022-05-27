@@ -2,12 +2,14 @@
 
 Do not put anything here which imports from other ProcTools submodules!
 """
-from collections import Counter
-from datetime import date, datetime as _datetime, timedelta
 import logging
-from pathlib import Path
 import random
 import socket
+from collections import Counter
+from datetime import date
+from datetime import datetime as _datetime
+from datetime import timedelta
+from pathlib import Path
 from types import GeneratorType
 from typing import Any, Iterable, Iterator, Optional, Union
 

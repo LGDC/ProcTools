@@ -1,14 +1,13 @@
 """Value-building, -deriving, and -cleaning objects."""
-from datetime import date, datetime as _datetime
-from hashlib import sha256
 import logging
 import string
+from datetime import date
+from datetime import datetime as _datetime
+from hashlib import sha256
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from unicodedata import combining, normalize
 
 import dateutil.parser
-
-# Py3.7: pairwise added to standard library itertools in 3.10.
 from more_itertools import pairwise
 
 
@@ -191,7 +190,11 @@ def feature_key(*id_values: Iterable[Any]) -> Union[str, None]:
         *id_values: Sequence of ID values.
     """
     return clean_whitespace(
-        concatenate(*id_values, nonetype_replacement="", separator=" | ",),
+        concatenate(
+            *id_values,
+            nonetype_replacement="",
+            separator=" | ",
+        ),
     )
 
 
@@ -330,12 +333,12 @@ def leading_number_sort_key(value: Union[str, None]) -> Tuple[int, str]:
         value: Value to evaluate.
     """
     if not value:
-        return (-(2 ** 63), "")
+        return (-(2**63), "")
 
     tail = value.lstrip("0123456789")
     # No numeric head - set numeric sort value to one higher than None/empty:
     if tail == value:
-        numeric_head = 2 ** 63 - 1
+        numeric_head = 2**63 - 1
     elif not tail:
         numeric_head = int(value)
     else:

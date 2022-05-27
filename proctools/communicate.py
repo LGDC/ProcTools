@@ -1,12 +1,12 @@
 """Communication objects."""
+import logging
+import re
+import smtplib
 from email.encoders import encode_base64
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import logging
 from pathlib import Path
-import re
-import smtplib
 from typing import Iterable, Iterator, Optional, Union
 
 

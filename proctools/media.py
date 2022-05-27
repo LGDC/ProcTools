@@ -8,9 +8,8 @@ from time import sleep
 from typing import Iterable, List, Optional, Sequence, Union
 
 import img2pdf
-from PIL import Image, ImageFile, ImageSequence
-
 from pdfid_PL import PDFiD as pdfid
+from PIL import Image, ImageFile, ImageSequence
 
 from proctools.misc import elapsed, log_entity_states
 

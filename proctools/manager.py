@@ -1,4 +1,6 @@
 """Process manager objects."""
+import os
+import sqlite3
 from datetime import datetime as _datetime
 from logging import (
     DEBUG,
@@ -10,11 +12,9 @@ from logging import (
     getLogger,
 )
 from operator import itemgetter
-import os
 from pathlib import Path
-import sqlite3
 from types import FunctionType
-from typing import Callable, Dict, Iterable, List, Set, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Union
 
 from jinja2 import Environment, PackageLoader
 

@@ -7,10 +7,9 @@ from tempfile import gettempdir
 from time import sleep
 from typing import Any, Iterable, Mapping, Optional, Union
 
-from arcgis.gis import GIS, Item, User
-from arcgis.features import Feature, FeatureLayer, Table
-
 import arcproc
+from arcgis.features import Feature, FeatureLayer, Table
+from arcgis.gis import GIS, Item, User
 from arcproc.metadata import Workspace
 
 from proctools.filesystem import archive_folder

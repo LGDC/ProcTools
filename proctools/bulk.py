@@ -11,7 +11,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from arcproc import update_field_with_function
 from arcproc.dataset import add_field
 from arcproc.managers import Procedure
-from arcproc.metadata import Dataset as _Dataset, Field, SpatialReferenceSourceItem
+from arcproc.metadata import Dataset as _Dataset
+from arcproc.metadata import Field, SpatialReferenceSourceItem
 
 from proctools.metadata import Dataset
 from proctools.value import (

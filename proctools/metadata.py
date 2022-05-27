@@ -5,11 +5,10 @@ from pathlib import Path
 from typing import Any, Iterable, List, Optional
 from urllib.parse import quote_plus
 
+import arcproc
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-
-import arcproc
 
 from proctools.misc import sql_server_odbc_string
 

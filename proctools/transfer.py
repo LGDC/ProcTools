@@ -1,9 +1,9 @@
 """Data & file transfer objects."""
-from datetime import datetime as _datetime
 import ftplib
 import logging
-from pathlib import Path, PurePosixPath
 import time
+from datetime import datetime as _datetime
+from pathlib import Path, PurePosixPath
 from typing import Optional, Union
 
 import dropbox
