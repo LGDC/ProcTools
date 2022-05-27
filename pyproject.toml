@@ -2,9 +2,11 @@
 name = "ProcTools"
 version = "0.1.0"
 description = "Common tools used for processing"
+license = "MIT"
 authors = [
     { name = "Jacob Blair", email = "jblairpdx@gmail.com" }
 ]
+readme = "README.md"
 repository = "https://github.com/LGDC/ProcTools"
 
 [tool.black]
