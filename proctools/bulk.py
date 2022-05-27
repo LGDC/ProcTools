@@ -8,7 +8,8 @@ from pathlib import Path
 from types import FunctionType
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-import arcproc
+from arcproc import update_field_with_function
+from arcproc.dataset import add_field
 from arcproc.managers import Procedure
 from arcproc.metadata import Dataset as _Dataset, Field, SpatialReferenceSourceItem
 
@@ -61,9 +62,9 @@ def add_missing_fields(
     for field in fields:
         field = {key: value for key, value in asdict(field).items() if key in add_keys}
         if isinstance(dataset, Procedure):
-            dataset.transform(arcproc.dataset.add_field, exist_ok=True, **field)
+            dataset.transform(add_field, exist_ok=True, **field)
         else:
-            arcproc.dataset.add_field(dataset_path=dataset, exist_ok=True, **field)
+            add_field(dataset_path=dataset, exist_ok=True, **field)
     return fields
 
 
@@ -357,11 +358,7 @@ def bulk_update_values_by_function(
     states = Counter()
     for kwargs["field_name"] in field_names:
         if isinstance(dataset, Procedure):
-            states.update(
-                dataset.transform(arcproc.attributes.update_by_function, **kwargs)
-            )
+            states.update(dataset.transform(update_field_with_function, **kwargs))
         else:
-            states.update(
-                arcproc.attributes.update_by_function(dataset_path=dataset, **kwargs)
-            )
+            states.update(update_field_with_function(dataset_path=dataset, **kwargs))
     return states
