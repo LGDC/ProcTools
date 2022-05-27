@@ -1,0 +1,16 @@
+[project]
+name = "ProcTools"
+version = "0.1.0"
+description = "Common tools used for processing"
+authors = [
+    { name = "Jacob Blair", email = "jblairpdx@gmail.com" }
+]
+repository = "https://github.com/LGDC/ProcTools"
+
+[tool.black]
+
+[tool.isort]
+include_trailing_comma = "True"
+lines_after_imports = 2
+line_length = 88
+multi_line_output = 3
