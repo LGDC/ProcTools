@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Iterable, List, Optional
 from urllib.parse import quote_plus
 
-import arcproc
+from arcproc import create_dataset
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
@@ -248,7 +248,7 @@ class Dataset:
             if (create_source and not field.not_in_source)
             or (not create_source and not field.source_only)
         ]
-        return arcproc.dataset.create(
+        return create_dataset(
             dataset_path,
             field_metadata_list=field_metadata_list,
             geometry_type=self.geometry_type,

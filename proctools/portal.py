@@ -7,10 +7,11 @@ from tempfile import gettempdir
 from time import sleep
 from typing import Any, Iterable, Mapping, Optional, Union
 
-import arcproc
 from arcgis.features import Feature, FeatureLayer, Table
 from arcgis.gis import GIS, Item, User
+from arcproc import compress_dataset, copy_dataset, delete_dataset
 from arcproc.metadata import Workspace
+from arcproc.workspace import create_file_geodatabase
 
 from proctools.filesystem import archive_folder
 from proctools.misc import log_entity_states
@@ -266,15 +267,15 @@ def upload_dataset_as_geodatabase(
         Uploaded file geodatabase item.
     """
     geodatabase_path = Path(gettempdir(), geodatabase_name)
-    arcproc.workspace.create_file_geodatabase(geodatabase_path, log_level=DEBUG)
+    create_file_geodatabase(geodatabase_path, log_level=DEBUG)
     # Remove enterprise DB schema.
     if Workspace(dataset_path.parent).is_enterprise_database:
         dataset_name = dataset_path.name.split(".", maxsplit=1)[-1]
     else:
         dataset_name = dataset_path.name
     output_path = geodatabase_path / dataset_name
-    arcproc.dataset.copy(dataset_path, output_path=output_path, log_level=DEBUG)
-    arcproc.dataset.compress(output_path, log_level=DEBUG)
+    copy_dataset(dataset_path, output_path=output_path, log_level=DEBUG)
+    compress_dataset(output_path, log_level=DEBUG)
     zip_filepath = geodatabase_path.with_suffix(".zip")
     archive_folder(
         folder_path=geodatabase_path,
@@ -282,7 +283,7 @@ def upload_dataset_as_geodatabase(
         exclude_patterns=[".lock", ".zip"],
         include_base_folder=True,
     )
-    arcproc.dataset.delete(geodatabase_path, log_level=DEBUG)
+    delete_dataset(geodatabase_path, log_level=DEBUG)
     # pylint: disable=no-member
     geodatabase = site.content.add(
         item_properties={"type": "File Geodatabase", "tags": tags},
