@@ -8,11 +8,16 @@ from pathlib import Path
 from types import FunctionType
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-from arcproc import Procedure, add_field, update_field_with_function
-from arcproc.metadata import Dataset as _Dataset
-from arcproc.metadata import Field, SpatialReferenceSourceItem
+from arcproc import (
+    Dataset,
+    Field,
+    Procedure,
+    SpatialReferenceSourceItem,
+    add_field,
+    update_field_with_function,
+)
 
-from proctools.metadata import Dataset
+from proctools.metadata import Dataset as MetaDataset
 from proctools.value import (
     clean_whitespace,
     force_lowercase,
@@ -31,7 +36,7 @@ LOG: Logger = getLogger(__name__)
 
 def add_missing_fields(
     dataset: Union[Path, str, Procedure],
-    dataset_metadata: Dataset,
+    dataset_metadata: MetaDataset,
     *,
     from_source: bool = False,
 ) -> List[Field]:
@@ -79,7 +84,7 @@ def bulk_clean_all_whitespace(
     Returns:
         Attribute counts for each update-state.
     """
-    fields = _Dataset(
+    fields = Dataset(
         dataset.transform_path if isinstance(dataset, Procedure) else dataset
     ).user_fields
     fields = [field for field in fields if field.type.upper() in ["STRING", "TEXT"]]
@@ -261,7 +266,7 @@ def bulk_replace_all_null_values(
     type_replacement = {"Date": date_replacement, "String": string_replacement}
     type_replacement["Double"] = type_replacement["Single"] = float_replacement
     type_replacement["Integer"] = type_replacement["SmallInteger"] = integer_replacement
-    fields = _Dataset(
+    fields = Dataset(
         dataset.transform_path if isinstance(dataset, Procedure) else dataset
     ).user_fields
     states = Counter()
