@@ -8,8 +8,7 @@ from pathlib import Path
 from types import FunctionType
 from typing import Any, Dict, Iterable, List, Optional, Union
 
-from arcproc import add_field, update_field_with_function
-from arcproc.managers import Procedure
+from arcproc import Procedure, add_field, update_field_with_function
 from arcproc.metadata import Dataset as _Dataset
 from arcproc.metadata import Field, SpatialReferenceSourceItem
 
