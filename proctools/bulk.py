@@ -148,8 +148,7 @@ def bulk_enforce_yn_values(
     """Enforce usage of only "Y" or "N" in field values.
 
     Args:
-        dataset (pathlib.Path, str, arcproc.managers.Procedure): Path to dataset, or
-            Procedure instance.
+        dataset: Path to dataset, or ArcProc Procedure instance.
         field_names: Names of fields to update.
         default: Value to change non-YN values to.
         use_edit_session: True if edits are to be made in an edit session.

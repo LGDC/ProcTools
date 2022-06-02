@@ -9,8 +9,13 @@ from typing import Any, Iterable, Mapping, Optional, Union
 
 from arcgis.features import Feature, FeatureLayer, Table
 from arcgis.gis import GIS, Item, User
-from arcproc import Workspace, compress_dataset, copy_dataset, delete_dataset
-from arcproc.workspace import create_file_geodatabase
+from arcproc import (
+    Workspace,
+    compress_dataset,
+    copy_dataset,
+    create_file_geodatabase,
+    delete_dataset,
+)
 
 from proctools.filesystem import archive_folder
 from proctools.misc import log_entity_states
