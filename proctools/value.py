@@ -1,23 +1,22 @@
 """Value-building, -deriving, and -cleaning objects."""
-import logging
-import string
-from datetime import date
-from datetime import datetime as _datetime
+from datetime import date, datetime
 from hashlib import sha256
+from logging import Logger, getLogger
+from string import punctuation, whitespace
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from unicodedata import combining, normalize
 
-import dateutil.parser
+from dateutil.parser import parse
 from more_itertools import pairwise
 
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 # Adding en-dash & em-dash; string.punctuation only has hyphen.
-PUNCTUATION: str = string.punctuation + "–—"
+PUNCTUATION: str = punctuation + "–—"
 """Common punctuation characters."""
 TITLE_CASE_EXCEPTIONS: Dict[str, List[str]] = {
     "directional_abbreviations": ["N", "S", "E", "W", "NE", "NW", "SE", "SW"],
@@ -112,7 +111,7 @@ def clean_whitespace(
     """
     if value is not None:
         value = value.strip()
-        for character in string.whitespace:
+        for character in whitespace:
             while character * 2 in value:
                 value = value.replace(character * 2, character)
     if clear_empty_string and not value:
@@ -152,7 +151,7 @@ def concatenate(
     return concatenated if concatenated else None
 
 
-def date_as_datetime(value: Union[date, _datetime, None]) -> Union[_datetime, None]:
+def date_as_datetime(value: Union[date, datetime, None]) -> Union[datetime, None]:
     """Return date or datetime value zero-time datetime.
 
     Args:
@@ -161,10 +160,10 @@ def date_as_datetime(value: Union[date, _datetime, None]) -> Union[_datetime, No
     Returns:
         datetime version of date. None if value is None.
     """
-    return _datetime(value.year, value.month, value.day) if value else value
+    return datetime(value.year, value.month, value.day) if value else value
 
 
-def datetime_from_string(value: Union[str, None]) -> Union[_datetime, None]:
+def datetime_from_string(value: Union[str, None]) -> Union[datetime, None]:
     """Extract datetime object from input.
 
     Args:
@@ -174,7 +173,7 @@ def datetime_from_string(value: Union[str, None]) -> Union[_datetime, None]:
         Extracted datetime if found. None if datetime not found.
     """
     try:
-        result = dateutil.parser.parse(value) if value else None
+        result = parse(value) if value else None
     except ValueError:
         if "_" in value:
             result = datetime_from_string(value.replace("_", "-"))
@@ -208,7 +207,7 @@ def feature_key_hash(*id_values: Iterable[Any]) -> Union[str, None]:
     return sha256(key.encode()).hexdigest() if key is not None else None
 
 
-def force_lowercase(value: Union[str, None]) -> Union[str, None]:
+def make_lowercase(value: Union[str, None]) -> Union[str, None]:
     """Return value converted to lowercase.
 
     Args:
@@ -217,7 +216,7 @@ def force_lowercase(value: Union[str, None]) -> Union[str, None]:
     return value.lower() if value else value
 
 
-def force_title_case(
+def make_title_case(
     value: Union[str, None], *, part_correction: Optional[Dict[str, str]] = None
 ) -> Union[str, None]:
     """Return value converted to title case.
@@ -280,7 +279,7 @@ def force_title_case(
     return new_value
 
 
-def force_uppercase(value: Union[str, None]) -> Union[str, None]:
+def make_uppercase(value: Union[str, None]) -> Union[str, None]:
     """Return value converted to uppercase.
 
     Args:
@@ -289,7 +288,7 @@ def force_uppercase(value: Union[str, None]) -> Union[str, None]:
     return value.upper() if value else value
 
 
-def force_yn(
+def enforce_yn(
     value: Union[str, None], default: Union[str, None] = None
 ) -> Union[str, None]:
     """Return given value if valid "Y" or "N" representation; otherwise return default.
@@ -396,11 +395,10 @@ def remove_diacritics(value: Union[str, None]) -> Union[str, None]:
     Args:
         value: Value to convert.
     """
-    return (
-        "".join(char for char in normalize("NFKD", value) if not combining(char))
-        if value
-        else value
-    )
+    if not value:
+        return value
+
+    return "".join(char for char in normalize("NFKD", value) if not combining(char))
 
 
 def same_string_casefold(*values: Union[str, None]) -> bool:
@@ -422,10 +420,10 @@ def same_string_casefold(*values: Union[str, None]) -> bool:
     return same
 
 
-def truncate_datetime(value: Union[_datetime, None]) -> Union[_datetime, None]:
+def truncate_datetime(value: Union[datetime, None]) -> Union[datetime, None]:
     """Return datetime truncated to the day.
 
     Args:
         value: Value to truncate.
     """
-    return _datetime(value.year, value.month, value.day) if value else value
+    return datetime(value.year, value.month, value.day) if value else value

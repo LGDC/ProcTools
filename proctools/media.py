@@ -7,11 +7,11 @@ from subprocess import check_call
 from time import sleep
 from typing import Iterable, List, Optional, Sequence, Union
 
-import img2pdf
+from img2pdf import convert
 from pdfid_PL import PDFiD as pdfid
 from PIL import Image, ImageFile, ImageSequence
 
-from proctools.misc import elapsed, log_entity_states
+from proctools.misc import log_entity_states, time_elapsed
 
 
 __all__ = []
@@ -192,7 +192,7 @@ def clean_pdfs(
         if log_evaluated_division and i % log_evaluated_division == 0:
             logger.info("Evaluated %s PDFs.", format(i, ",d"))
     log_entity_states("PDFs", states, logger=logger, log_level=INFO)
-    elapsed(start_time, logger=logger)
+    time_elapsed(start_time, logger=logger)
     logger.info("End: Clean.")
     return states
 
@@ -240,7 +240,7 @@ def convert_image_to_pdf(
     output_file = output_path.open(mode="wb")
     with image_file, output_file:
         try:
-            pdf = img2pdf.convert(image_file)
+            pdf = convert(image_file)
             output_file.write(pdf)
             result = "converted"
         # Blame that alpha channel exception for the broad-except.
@@ -297,7 +297,7 @@ def convert_images_to_pdf(
         if log_evaluated_division and i % log_evaluated_division == 0:
             logger.info("Evaluated %s PDFs.", format(i, ",d"))
     log_entity_states("images", states, logger=logger, log_level=INFO)
-    elapsed(start_time, logger=logger)
+    time_elapsed(start_time, logger=logger)
     logger.info("End: Convert.")
     return states
 
@@ -430,7 +430,7 @@ def convert_images_to_thumbnails(
         if log_evaluated_division and i % log_evaluated_division == 0:
             logger.info("Evaluated %s images.", format(i, ",d"))
     log_entity_states("images", states, logger=logger, log_level=INFO)
-    elapsed(start_time, logger=logger)
+    time_elapsed(start_time, logger=logger)
     logger.info("End: Convert.")
     return states
 

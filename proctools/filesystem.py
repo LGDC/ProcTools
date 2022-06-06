@@ -1,25 +1,25 @@
 """File system objects."""
-import filecmp
-import logging
-import shutil
-import stat
-import subprocess
 from collections import Counter
 from contextlib import ContextDecorator
-from datetime import datetime as _datetime
+from datetime import datetime
+from filecmp import cmp
+from logging import DEBUG, INFO, WARNING, Logger, getLogger
 from pathlib import Path
+from shutil import copy2
+from stat import S_IWRITE
+from subprocess import CalledProcessError, check_call
 from types import TracebackType
 from typing import Iterable, Iterator, Optional, Type, TypeVar, Union
 from zipfile import ZIP_DEFLATED, BadZipfile, ZipFile
 
 from more_itertools import pairwise
 
-from proctools.misc import elapsed, log_entity_states
+from proctools.misc import log_entity_states, time_elapsed
 
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 # Py3.7: Can replace usage with `typing.Self` in Py3.11.
@@ -79,14 +79,14 @@ class NetUse(ContextDecorator):
             call_string += f" {self.__password}"
         if self.__username:
             call_string += f""" /user:"{self.__username}\""""
-        subprocess.check_call(call_string)
+        check_call(call_string)
 
     def disconnect(self) -> None:
         """Disconnect resource."""
         call_string = f"""net use "{self}" /delete"""
         try:
-            subprocess.check_call(call_string)
-        except subprocess.CalledProcessError as disconnect_error:
+            check_call(call_string)
+        except CalledProcessError as disconnect_error:
             if disconnect_error.returncode == 2:
                 LOG.debug("Network resource `%s` already disconnected.", self.unc_path)
 
@@ -131,7 +131,7 @@ def archive_folder(
     if encryption_password:
         encrypted_path = archive_path.parent / ("ENCRYPTED_" + archive_path.name)
         # Usage: 7za.exe <command> <archive_name> [<file_names>...] [<switches>...]
-        subprocess.check_call(
+        check_call(
             f"""{SEVEN_ZIP_PATH} a "{encrypted_path}" "{archive_path}\""""
             f""" -p"{encryption_password}\""""
         )
@@ -163,13 +163,13 @@ def create_folder(
     return folder_path
 
 
-def date_file_modified(filepath: Union[Path, str]) -> _datetime:
+def date_file_modified(filepath: Union[Path, str]) -> datetime:
     """Return modified date-time from given filepath.
 
     Args:
         filepath: Path to file.
     """
-    return _datetime.fromtimestamp(Path(filepath).stat().st_mtime)
+    return datetime.fromtimestamp(Path(filepath).stat().st_mtime)
 
 
 def extract_archive(
@@ -274,7 +274,7 @@ def same_file(*filepaths: Union[Path, str], not_exists_ok: bool = True) -> bool:
         same = True
     else:
         same = all(
-            filecmp.cmp(filepath, cmp_filepath)
+            cmp(filepath, cmp_filepath)
             for filepath, cmp_filepath in pairwise(filepaths)
         )
     return same
@@ -304,9 +304,9 @@ def update_file(
         else:
             # Make destination file overwriteable.
             if filepath.exists():
-                filepath.chmod(mode=stat.S_IWRITE)
+                filepath.chmod(mode=S_IWRITE)
             try:
-                shutil.copy2(source_filepath, filepath)
+                copy2(source_filepath, filepath)
             except IOError:
                 result = "failed to update"
             else:
@@ -315,18 +315,18 @@ def update_file(
         # Create folder structure (if necessary).
         filepath.parent.mkdir(parents=True, exist_ok=True)
         try:
-            shutil.copy2(source_filepath, filepath)
+            copy2(source_filepath, filepath)
         except IOError:
             result = "failed to create"
         else:
             result = "created"
     if result in ["created", "updated"]:
-        filepath.chmod(mode=stat.S_IWRITE)
-        log_level = logging.INFO
+        filepath.chmod(mode=S_IWRITE)
+        log_level = INFO
     elif "failed to" in result:
-        log_level = logging.WARNING
+        log_level = WARNING
     else:
-        log_level = logging.DEBUG
+        log_level = DEBUG
     LOG.log(log_level, "`%s` %s from `%s`.", filepath, result, source_filepath)
     return result
 
@@ -338,7 +338,7 @@ def update_replica_folder(
     file_extensions: Optional[Iterable[str]] = None,
     flatten_tree: bool = False,
     top_level_only: bool = False,
-    logger: Optional[logging.Logger] = None,
+    logger: Optional[Logger] = None,
     log_evaluated_division: Optional[int] = None,
 ) -> Counter:
     """Update folder from source.
@@ -362,7 +362,7 @@ def update_replica_folder(
     Returns:
         File counts for each update result type.
     """
-    start_time = _datetime.now()
+    start_time = datetime.now()
     folder_path = Path(folder_path)
     source_path = Path(source_path)
     if logger is None:
@@ -386,7 +386,7 @@ def update_replica_folder(
         states[update_file(filepath, source_filepath=source_filepath)] += 1
         if log_evaluated_division and i % log_evaluated_division == 0:
             logger.info("Evaluated %s files.", format(i, ",d"))
-    log_entity_states("files", states, logger=logger, log_level=logging.INFO)
-    elapsed(start_time, logger=logger)
+    log_entity_states("files", states, logger=logger, log_level=INFO)
+    time_elapsed(start_time, logger=logger)
     logger.info("End: Update.")
     return states

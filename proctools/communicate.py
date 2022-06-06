@@ -1,18 +1,18 @@
 """Communication objects."""
-import logging
-import re
-import smtplib
 from email.encoders import encode_base64
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from logging import Logger, getLogger
 from pathlib import Path
+from re import findall
+from smtplib import SMTP
 from typing import Iterable, Iterator, Optional, Union
 
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 
@@ -36,7 +36,7 @@ def extract_email_addresses(
         if isinstance(source, bytes):
             source = source.decode("utf-8")
         if isinstance(source, str):
-            yield from re.findall(r"[\w\.-]+@[\w\.-]+", source)
+            yield from findall(r"[\w\.-]+@[\w\.-]+", source)
 
         elif isinstance(source, Iterable):
             yield from extract_email_addresses(*source)
@@ -111,7 +111,7 @@ def send_email_smtp(
                 "Content-Disposition", "attachment", filename=attachment_path.name
             )
             message.attach(payload=part)
-    connection = smtplib.SMTP(host=host, port=port)
+    connection = SMTP(host=host, port=port)
     connection.starttls()
     # Only bother to log in if password provided (some SMTP hosts authenticate by IP).
     if password:

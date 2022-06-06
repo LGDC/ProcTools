@@ -1,6 +1,6 @@
 """ArcGIS Online & other portal objects."""
 from collections import Counter
-from datetime import datetime as _datetime
+from datetime import datetime
 from logging import DEBUG, Logger, getLogger
 from pathlib import Path
 from tempfile import gettempdir
@@ -207,7 +207,7 @@ def load_feature_layer(configuration: Mapping[str, Any], site: GIS) -> Counter:
     geodatabase = upload_dataset_as_geodatabase(
         site,
         dataset_path=configuration["dataset"].path,
-        geodatabase_name=f"{layer_name}__Temp_{_datetime.now():%Y_%m_%d_T%H%M}.gdb",
+        geodatabase_name=f"{layer_name}__Temp_{datetime.now():%Y_%m_%d_T%H%M}.gdb",
         tags=["Temporary"],
     )
     LOG.info("Deleting features...")

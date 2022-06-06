@@ -20,10 +20,10 @@ from arcproc import (
 from proctools.metadata import Dataset as MetaDataset
 from proctools.value import (
     clean_whitespace,
-    force_lowercase,
-    force_title_case,
-    force_uppercase,
-    force_yn,
+    enforce_yn,
+    make_lowercase,
+    make_title_case,
+    make_uppercase,
 )
 
 
@@ -159,7 +159,7 @@ def bulk_enforce_yn_values(
     return bulk_update_values_by_function(
         dataset,
         field_names=field_names,
-        function=partial(force_yn, default=default),
+        function=partial(enforce_yn, default=default),
         use_edit_session=use_edit_session,
     )
 
@@ -183,7 +183,7 @@ def bulk_make_values_lowercase(
     return bulk_update_values_by_function(
         dataset,
         field_names=field_names,
-        function=force_lowercase,
+        function=make_lowercase,
         use_edit_session=use_edit_session,
     )
 
@@ -211,7 +211,7 @@ def bulk_make_values_title_case(
     return bulk_update_values_by_function(
         dataset,
         field_names=field_names,
-        function=partial(force_title_case, part_correction=part_correction),
+        function=partial(make_title_case, part_correction=part_correction),
         use_edit_session=use_edit_session,
     )
 
@@ -235,7 +235,7 @@ def bulk_make_values_uppercase(
     return bulk_update_values_by_function(
         dataset,
         field_names=field_names,
-        function=force_uppercase,
+        function=make_uppercase,
         use_edit_session=use_edit_session,
     )
 

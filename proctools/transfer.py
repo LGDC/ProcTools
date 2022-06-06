@@ -1,9 +1,9 @@
 """Data & file transfer objects."""
-import ftplib
-import logging
-import time
-from datetime import datetime as _datetime
+from datetime import datetime
+from ftplib import FTP
+from logging import Logger, getLogger
 from pathlib import Path, PurePosixPath
+from time import gmtime
 from typing import Optional, Union
 
 import dropbox
@@ -12,7 +12,7 @@ import pysftp
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 
@@ -21,7 +21,7 @@ def dropbox_get_share_link(
     *,
     app_token: str,
     link_password: Optional[str] = None,
-    time_link_expires: Optional[_datetime] = None,
+    time_link_expires: Optional[datetime] = None,
 ) -> str:
     """Return shareable URL for Dropbox file or folder.
 
@@ -87,7 +87,7 @@ def dropbox_upload_file(
         # dropbox v10.10.0: Convert PurePosixPath to str.
         "path": str(destination_path),
         "mode": dropbox.files.WriteMode("overwrite"),
-        "client_modified": _datetime(*time.gmtime(source_path.stat().st_mtime)[:6]),
+        "client_modified": datetime(*gmtime(source_path.stat().st_mtime)[:6]),
         "mute": True,
     }
     api = dropbox.Dropbox(oauth2_access_token=app_token)
@@ -137,7 +137,7 @@ def ftp_upload_file(
     source_path = Path(source_path)
     destination_path = PurePosixPath(destination_path)
     try:
-        ftp = ftplib.FTP(host="")
+        ftp = FTP(host="")
         ftp.connect(host, port=port)
         ftp.login(user=username, passwd=password)
         # Py 3.7.10: Convert PurePosixPath to str.

@@ -2,21 +2,19 @@
 
 Do not put anything here which imports from other ProcTools submodules!
 """
-import logging
-import random
-import socket
 from collections import Counter
-from datetime import date
-from datetime import datetime as _datetime
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from logging import INFO, Logger, getLogger
 from pathlib import Path
+from random import sample
+from socket import getfqdn
 from types import GeneratorType
 from typing import Any, Iterable, Iterator, Optional, Union
 
 
 __all__ = []
 
-LOG: logging.Logger = logging.getLogger(__name__)
+LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 
@@ -29,11 +27,11 @@ def access_odbc_string(database_path: Union[Path, str]) -> str:
     return f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={database_path}"
 
 
-def elapsed(
-    start_time: _datetime,
+def time_elapsed(
+    start_time: datetime,
     *,
-    logger: Optional[logging.Logger] = None,
-    log_level: int = logging.INFO,
+    logger: Optional[Logger] = None,
+    log_level: int = INFO,
 ) -> timedelta:
     """Return time-delta since start time.
 
@@ -42,7 +40,7 @@ def elapsed(
         logger: Logger to emit elapsed message.
         log_level: Level to log elapsed message at.
     """
-    delta = _datetime.now() - start_time
+    delta = datetime.now() - start_time
     if logger:
         logger.log(
             log_level,
@@ -54,8 +52,8 @@ def elapsed(
     return delta
 
 
-def last_date(
-    day_name: str, *, date_of_reference: Optional[Union[date, _datetime]] = None
+def last_date_of_day(
+    day_name: str, *, date_of_reference: Optional[Union[date, datetime]] = None
 ) -> date:
     """Return the last date that the given day occurred on.
 
@@ -79,7 +77,7 @@ def last_date(
     if delta_day >= 0:
         delta_day -= 7
     day_date = date_of_reference + timedelta(days=delta_day)
-    if isinstance(day_date, _datetime):
+    if isinstance(day_date, datetime):
         day_date = day_date.date()
     return day_date
 
@@ -88,8 +86,8 @@ def log_entity_states(
     entity_label: str,
     states: Counter,
     *,
-    logger: Optional[logging.Logger] = None,
-    log_level: int = logging.INFO,
+    logger: Optional[Logger] = None,
+    log_level: int = INFO,
     logline_format: str = "{count:,} {entity_type} {state}.",
 ) -> None:
     """Log the counts for entities in each state from provided counter.
@@ -150,7 +148,7 @@ def randomized(iterable: Iterable[Any]) -> Iterator[Any]:
     """
     if isinstance(iterable, GeneratorType):
         iterable = set(iterable)
-    yield from random.sample(population=iterable, k=len(iterable))
+    yield from sample(population=iterable, k=len(iterable))
 
 
 def sql_server_odbc_string(
@@ -198,7 +196,7 @@ def sql_server_odbc_string(
         odbc_string += "ApplicationIntent=ReadOnly;"
     else:
         odbc_string += "ApplicationIntent=ReadWrite;"
-    odbc_string += "WSID={};".format(socket.getfqdn())
+    odbc_string += f"WSID={getfqdn()};"
     return odbc_string
 
 
@@ -208,4 +206,4 @@ def timestamp(fmt="%Y_%m_%d_T%H%M") -> str:
     Args:
         fmt: String-formatting for stamp.
     """
-    return _datetime.now().strftime(fmt)
+    return datetime.now().strftime(fmt)

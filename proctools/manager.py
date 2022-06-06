@@ -1,7 +1,5 @@
 """Process manager objects."""
-import os
-import sqlite3
-from datetime import datetime as _datetime
+from datetime import datetime
 from logging import (
     DEBUG,
     INFO,
@@ -12,14 +10,16 @@ from logging import (
     getLogger,
 )
 from operator import itemgetter
+from os import environ
 from pathlib import Path
+from sqlite3 import connect
 from types import FunctionType
 from typing import Callable, Dict, Iterable, List, Optional, Set, Union
 
 from jinja2 import Environment, PackageLoader
 
 from proctools.communicate import extract_email_addresses, send_email_smtp
-from proctools.misc import elapsed
+from proctools.misc import time_elapsed
 from proctools.value import datetime_from_string
 
 
@@ -29,9 +29,9 @@ LOG: Logger = getLogger(__name__)
 """Module-level logger."""
 
 PROC_PATH: Path = (
-    Path(os.environ["PROC_PATH"])
-    if "PROC_PATH" in os.environ
-    else Path(os.environ.get("LOCALAPPDATA"), "proc")
+    Path(environ["PROC_PATH"])
+    if "PROC_PATH" in environ
+    else Path(environ.get("LOCALAPPDATA"), "ProcTools")
 )
 """Path to folder for processing environment."""
 LOGS_PATH: Path = PROC_PATH / "logs"
@@ -61,7 +61,7 @@ class Batch:
             name: Name of the batch.
         """
         self.name = name
-        self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
+        self._conn = connect(RUN_RESULTS_DB_PATH)
 
         with self._conn:
             cursor = self._conn.cursor()
@@ -77,7 +77,7 @@ class Batch:
             return [name for name, in cursor.fetchall()]
 
     @property
-    def job_last_run_records(self) -> List[Dict[str, Union[_datetime, int, str]]]:
+    def job_last_run_records(self) -> List[Dict[str, Union[datetime, int, str]]]:
         """List of dictionaries for last run records for jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
@@ -95,7 +95,7 @@ class Batch:
         return records
 
     @property
-    def job_last_run_start_times(self) -> Set[_datetime]:
+    def job_last_run_start_times(self) -> Set[datetime]:
         """Set of last-run start times for jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
@@ -220,7 +220,7 @@ class Job:
         """
         self.name = name
         self.procedures = list(procedures) if procedures is not None else []
-        self._conn = sqlite3.connect(RUN_RESULTS_DB_PATH)
+        self._conn = connect(RUN_RESULTS_DB_PATH)
         with self._conn:
             cursor = self._conn.cursor()
             cursor.execute("SELECT id FROM Job WHERE name = ?;", [self.name])
@@ -247,7 +247,7 @@ class Job:
             raise ValueError(f"{value} not a valid status code")
 
         if self.run_id is None:
-            start_time = _datetime.now().isoformat(" ")
+            start_time = datetime.now().isoformat(" ")
             with self._conn:
                 self._conn.execute(
                     "INSERT INTO Job_Run(status, job_id, start_time) VALUES (?, ?, ?);",
@@ -261,7 +261,7 @@ class Job:
                 )
                 self.run_id = cursor.fetchone()[0]
         else:
-            end_time = None if value == -1 else _datetime.now().isoformat(" ")
+            end_time = None if value == -1 else datetime.now().isoformat(" ")
             with self._conn:
                 self._conn.execute(
                     "UPDATE Job_Run SET status = ?, end_time = ? WHERE id = ?;",
@@ -321,7 +321,7 @@ class Pipeline:
             TypeError: If a member is an invalid member type.
         """
         for member in self.members:
-            start_time = _datetime.now()
+            start_time = datetime.now()
             if isinstance(member, Job):
                 member_name = member.name
                 member_type = "job"
@@ -346,5 +346,5 @@ class Pipeline:
 
             if member_type == "job":
                 member.run_status = 1
-            elapsed(start_time, logger=log)
+            time_elapsed(start_time, logger=log)
             log.info("%s %s.", member_name, RUN_STATUS_DESCRIPTION[1])
