@@ -26,11 +26,6 @@ LOG: Logger = getLogger(__name__)
 TNetUse = TypeVar("TNetUse", bound="NetUse")
 """Type variable to enable method return of self on NetUse."""
 
-SEVEN_ZIP_PATH: Path = (
-    Path(__file__).parent.parent / "resources\\apps\\7_Zip\\x64\\7za.exe"
-)
-"""Path to 7-Zip command-line app."""
-
 
 class NetUse(ContextDecorator):
     """Simple manager for network resource connections."""
@@ -95,7 +90,6 @@ def archive_folder(
     folder_path: Union[Path, str],
     *,
     archive_path: Union[Path, str],
-    encryption_password: Optional[str] = None,
     exclude_patterns: Optional[Iterable[str]] = None,
     include_base_folder: bool = False,
 ) -> Path:
@@ -104,8 +98,6 @@ def archive_folder(
     Args:
         folder_path: Path to folder.
         archive_path: Path to archive.
-        encryption_password: Password for an encrypted wrapper archive to place the
-            folder archive within. If set to None, no encryption/wrapper will be done.
         exclude_patterns (iter): Collection of file/folder name patterns to
             exclude from archive.
         include_base_folder: If True file archive paths will include the base folder.
@@ -128,15 +120,6 @@ def archive_folder(
                 folder_path.parent if include_base_folder else folder_path
             )
             archive.write(filename=filepath, arcname=archive_filepath)
-    if encryption_password:
-        encrypted_path = archive_path.parent / ("ENCRYPTED_" + archive_path.name)
-        # Usage: 7za.exe <command> <archive_name> [<file_names>...] [<switches>...]
-        check_call(
-            f"""{SEVEN_ZIP_PATH} a "{encrypted_path}" "{archive_path}\""""
-            f""" -p"{encryption_password}\""""
-        )
-        archive_path.unlink()
-        encrypted_path.rename(archive_path)
     return archive_path
 
 
