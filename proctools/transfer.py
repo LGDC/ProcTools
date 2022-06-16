@@ -1,5 +1,5 @@
 """Data & file transfer objects."""
-from datetime import datetime
+from datetime import datetime as _datetime
 from ftplib import FTP
 from logging import Logger, getLogger
 from pathlib import Path, PurePosixPath
@@ -21,7 +21,7 @@ def dropbox_get_share_link(
     *,
     app_token: str,
     link_password: Optional[str] = None,
-    time_link_expires: Optional[datetime] = None,
+    time_link_expires: Optional[_datetime] = None,
 ) -> str:
     """Return shareable URL for Dropbox file or folder.
 
@@ -87,7 +87,7 @@ def dropbox_upload_file(
         # dropbox v10.10.0: Convert PurePosixPath to str.
         "path": str(destination_path),
         "mode": dropbox.files.WriteMode("overwrite"),
-        "client_modified": datetime(*gmtime(source_path.stat().st_mtime)[:6]),
+        "client_modified": _datetime(*gmtime(source_path.stat().st_mtime)[:6]),
         "mute": True,
     }
     api = dropbox.Dropbox(oauth2_access_token=app_token)

@@ -1,5 +1,5 @@
 """Process manager objects."""
-from datetime import datetime
+from datetime import datetime as _datetime
 from logging import (
     DEBUG,
     INFO,
@@ -77,7 +77,7 @@ class Batch:
             return [name for name, in cursor.fetchall()]
 
     @property
-    def job_last_run_records(self) -> List[Dict[str, Union[datetime, int, str]]]:
+    def job_last_run_records(self) -> List[Dict[str, Union[_datetime, int, str]]]:
         """List of dictionaries for last run records for jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
@@ -95,7 +95,7 @@ class Batch:
         return records
 
     @property
-    def job_last_run_start_times(self) -> Set[datetime]:
+    def job_last_run_start_times(self) -> Set[_datetime]:
         """Set of last-run start times for jobs in the batch."""
         with self._conn:
             cursor = self._conn.cursor()
@@ -247,7 +247,7 @@ class Job:
             raise ValueError(f"{value} not a valid status code")
 
         if self.run_id is None:
-            start_time = datetime.now().isoformat(" ")
+            start_time = _datetime.now().isoformat(" ")
             with self._conn:
                 self._conn.execute(
                     "INSERT INTO Job_Run(status, job_id, start_time) VALUES (?, ?, ?);",
@@ -261,7 +261,7 @@ class Job:
                 )
                 self.run_id = cursor.fetchone()[0]
         else:
-            end_time = None if value == -1 else datetime.now().isoformat(" ")
+            end_time = None if value == -1 else _datetime.now().isoformat(" ")
             with self._conn:
                 self._conn.execute(
                     "UPDATE Job_Run SET status = ?, end_time = ? WHERE id = ?;",
@@ -321,7 +321,7 @@ class Pipeline:
             TypeError: If a member is an invalid member type.
         """
         for member in self.members:
-            start_time = datetime.now()
+            start_time = _datetime.now()
             if isinstance(member, Job):
                 member_name = member.name
                 member_type = "job"

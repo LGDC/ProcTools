@@ -1,5 +1,6 @@
 """Value-building, -deriving, and -cleaning objects."""
-from datetime import date, datetime
+from datetime import date
+from datetime import datetime as _datetime
 from hashlib import sha256
 from logging import Logger, getLogger
 from string import punctuation, whitespace
@@ -151,7 +152,7 @@ def concatenate(
     return concatenated if concatenated else None
 
 
-def date_as_datetime(value: Union[date, datetime, None]) -> Union[datetime, None]:
+def date_as_datetime(value: Union[date, _datetime, None]) -> Union[_datetime, None]:
     """Return date or datetime value zero-time datetime.
 
     Args:
@@ -160,10 +161,10 @@ def date_as_datetime(value: Union[date, datetime, None]) -> Union[datetime, None
     Returns:
         datetime version of date. None if value is None.
     """
-    return datetime(value.year, value.month, value.day) if value else value
+    return _datetime(value.year, value.month, value.day) if value else value
 
 
-def datetime_from_string(value: Union[str, None]) -> Union[datetime, None]:
+def datetime_from_string(value: Union[str, None]) -> Union[_datetime, None]:
     """Extract datetime object from input.
 
     Args:
@@ -420,10 +421,10 @@ def same_string_casefold(*values: Union[str, None]) -> bool:
     return same
 
 
-def truncate_datetime(value: Union[datetime, None]) -> Union[datetime, None]:
+def truncate_datetime(value: Union[_datetime, None]) -> Union[_datetime, None]:
     """Return datetime truncated to the day.
 
     Args:
         value: Value to truncate.
     """
-    return datetime(value.year, value.month, value.day) if value else value
+    return _datetime(value.year, value.month, value.day) if value else value

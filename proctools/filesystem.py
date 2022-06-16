@@ -1,7 +1,7 @@
 """File system objects."""
 from collections import Counter
 from contextlib import ContextDecorator
-from datetime import datetime
+from datetime import datetime as _datetime
 from filecmp import cmp
 from logging import DEBUG, INFO, WARNING, Logger, getLogger
 from pathlib import Path
@@ -146,13 +146,13 @@ def create_folder(
     return folder_path
 
 
-def date_file_modified(filepath: Union[Path, str]) -> datetime:
+def date_file_modified(filepath: Union[Path, str]) -> _datetime:
     """Return modified date-time from given filepath.
 
     Args:
         filepath: Path to file.
     """
-    return datetime.fromtimestamp(Path(filepath).stat().st_mtime)
+    return _datetime.fromtimestamp(Path(filepath).stat().st_mtime)
 
 
 def extract_archive(
@@ -345,7 +345,7 @@ def update_replica_folder(
     Returns:
         File counts for each update result type.
     """
-    start_time = datetime.now()
+    start_time = _datetime.now()
     folder_path = Path(folder_path)
     source_path = Path(source_path)
     if logger is None:

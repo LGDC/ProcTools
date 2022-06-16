@@ -3,7 +3,9 @@
 Do not put anything here which imports from other ProcTools submodules!
 """
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date
+from datetime import datetime as _datetime
+from datetime import timedelta
 from logging import INFO, Logger, getLogger
 from pathlib import Path
 from random import sample
@@ -28,7 +30,7 @@ def access_odbc_string(database_path: Union[Path, str]) -> str:
 
 
 def time_elapsed(
-    start_time: datetime,
+    start_time: _datetime,
     *,
     logger: Optional[Logger] = None,
     log_level: int = INFO,
@@ -40,7 +42,7 @@ def time_elapsed(
         logger: Logger to emit elapsed message.
         log_level: Level to log elapsed message at.
     """
-    delta = datetime.now() - start_time
+    delta = _datetime.now() - start_time
     if logger:
         logger.log(
             log_level,
@@ -53,7 +55,7 @@ def time_elapsed(
 
 
 def last_date_of_day(
-    day_name: str, *, date_of_reference: Optional[Union[date, datetime]] = None
+    day_name: str, *, date_of_reference: Optional[Union[date, _datetime]] = None
 ) -> date:
     """Return the last date that the given day occurred on.
 
@@ -77,7 +79,7 @@ def last_date_of_day(
     if delta_day >= 0:
         delta_day -= 7
     day_date = date_of_reference + timedelta(days=delta_day)
-    if isinstance(day_date, datetime):
+    if isinstance(day_date, _datetime):
         day_date = day_date.date()
     return day_date
 
@@ -206,4 +208,4 @@ def timestamp(fmt="%Y_%m_%d_T%H%M") -> str:
     Args:
         fmt: String-formatting for stamp.
     """
-    return datetime.now().strftime(fmt)
+    return _datetime.now().strftime(fmt)
