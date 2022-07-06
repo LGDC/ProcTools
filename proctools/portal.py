@@ -12,7 +12,7 @@ from arcgis.gis import GIS, Item, User
 from arcproc import (
     Workspace,
     compress_dataset,
-    copy_dataset,
+    copy_dataset_features,
     create_file_geodatabase,
     delete_dataset,
 )
@@ -278,7 +278,7 @@ def upload_dataset_as_geodatabase(
     else:
         dataset_name = dataset_path.name
     output_path = geodatabase_path / dataset_name
-    copy_dataset(dataset_path, output_path=output_path, log_level=DEBUG)
+    copy_dataset_features(dataset_path, output_path=output_path, log_level=DEBUG)
     compress_dataset(output_path, log_level=DEBUG)
     zip_filepath = geodatabase_path.with_suffix(".zip")
     archive_folder(
