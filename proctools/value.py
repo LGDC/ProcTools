@@ -431,6 +431,26 @@ def same_string_casefold(*values: Union[str, None]) -> bool:
     return same
 
 
+def slugify(text: str, *, separator: str = "-", force_lowercase: bool = True) -> str:
+    """Return text in slug-form.
+
+    Args:
+        text: String to slugify.
+        separator: Separator to replace punctuation & whitespace.
+        force_lowercase: Make all letters lowercase if True; keep same if False.
+    """
+    slug = text.lower() if force_lowercase else text
+    for char in punctuation + whitespace:
+        slug = slug.replace(char, separator)
+    while separator * 2 in slug:
+        slug = slug.replace(separator * 2, separator)
+    if slug.startswith(separator):
+        slug = slug[len(separator) :]
+    if slug.endswith(separator):
+        slug = slug[: -len(separator)]
+    return slug
+
+
 def truncate_datetime(value: Union[_datetime, None]) -> Union[_datetime, None]:
     """Return datetime truncated to the day.
 

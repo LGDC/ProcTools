@@ -15,6 +15,7 @@ from zipfile import ZIP_DEFLATED, BadZipfile, ZipFile
 from more_itertools import pairwise
 
 from proctools.misc import log_entity_states, time_elapsed
+from proctools.value import slugify
 
 
 __all__ = []
@@ -161,16 +162,16 @@ def extract_archive(
     return extracted
 
 
-def flattened_path(path: Union[Path, str], separator_replacement: str = "_") -> str:
+def get_flattened_path_string(
+    path: Union[Path, str], separator_replacement: str = "_"
+) -> str:
     """Returns "flattened" string of given path (separators replaced).
 
     Args:
         path: Path.
         separator_replacement: String to replace separators with.
     """
-    path = str(path)
-    for character in ["/", "\\", ":"]:
-        path = path.replace(character, separator_replacement)
+    path = slugify(str(path), separator=separator_replacement, force_lowercase=False)
     while separator_replacement * 2 in path:
         path = path.replace(separator_replacement * 2, separator_replacement)
     while path.startswith(separator_replacement) or path.endswith(

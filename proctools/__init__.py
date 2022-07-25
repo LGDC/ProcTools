@@ -21,8 +21,8 @@ from proctools.filesystem import (
     archive_folder,
     date_file_modified,
     extract_archive,
-    flattened_path,
     folder_filepaths,
+    get_flattened_path_string,
     same_file,
     update_file,
     update_replica_folder,
@@ -87,6 +87,7 @@ from proctools.value import (
     parity,
     remove_diacritics,
     same_string_casefold,
+    slugify,
     truncate_datetime,
 )
 
@@ -112,8 +113,8 @@ __all__ = [
     "archive_folder",
     "date_file_modified",
     "extract_archive",
-    "flattened_path",
     "folder_filepaths",
+    "get_flattened_path_string",
     "same_file",
     "update_file",
     "update_replica_folder",
@@ -179,5 +180,6 @@ __all__ = [
     "parity",
     "remove_diacritics",
     "same_string_casefold",
+    "slugify",
     "truncate_datetime",
 ]
