@@ -19,7 +19,6 @@ from proctools.communicate import (
 from proctools.filesystem import (
     NetUse,
     archive_folder,
-    create_folder,
     date_file_modified,
     extract_archive,
     flattened_path,
@@ -111,7 +110,6 @@ __all__ = [
     # Filesystem.
     "NetUse",
     "archive_folder",
-    "create_folder",
     "date_file_modified",
     "extract_archive",
     "flattened_path",

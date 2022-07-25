@@ -123,29 +123,6 @@ def archive_folder(
     return archive_path
 
 
-def create_folder(
-    folder_path: Union[Path, str],
-    *,
-    create_parents: bool = False,
-    exist_ok: bool = False,
-) -> Path:
-    """Create folder at given path.
-
-    Args:
-        folder_path: Path to folder.
-        create_parents: If True, any missing parent folders will also be created. Will
-            raise FileNotFoundError if False & parent folder missing.
-        exist_ok: If True, an already-existing folder will be treated as created. Will
-            raise FileExistsError if False.
-
-    Returns:
-        Path to folder.
-    """
-    folder_path = Path(folder_path)
-    folder_path.mkdir(parents=create_parents, exist_ok=exist_ok)
-    return folder_path
-
-
 def date_file_modified(filepath: Union[Path, str]) -> _datetime:
     """Return modified date-time from given filepath.
 
