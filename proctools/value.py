@@ -346,6 +346,16 @@ def leading_number_sort_key(value: Union[str, None]) -> Tuple[int, str]:
     return (numeric_head, tail)
 
 
+def make_zero_filled(value: Union[str, None], width: int) -> Union[str, None]:
+    """Return value with zero-filling.
+
+    Args:
+        value: Value to convert.
+        width: Width of zero-filling.
+    """
+    return value.zfill(width) if value is not None else None
+
+
 def max_value(*values: Any) -> Any:
     """Return maximum value, handling empty collections & NoneTypes.
 
