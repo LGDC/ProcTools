@@ -29,31 +29,6 @@ def access_odbc_string(database_path: Union[Path, str]) -> str:
     return f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={database_path}"
 
 
-def time_elapsed(
-    start_time: _datetime,
-    *,
-    logger: Optional[Logger] = None,
-    log_level: int = INFO,
-) -> timedelta:
-    """Return time-delta since start time.
-
-    Args:
-        start_time: Starting point to measure time elapsed since.
-        logger: Logger to emit elapsed message.
-        log_level: Level to log elapsed message at.
-    """
-    delta = _datetime.now() - start_time
-    if logger:
-        logger.log(
-            log_level,
-            "Elapsed: %s hrs, %s min, %s sec.",
-            (delta.days * 24 + delta.seconds // 3600),
-            ((delta.seconds // 60) % 60),
-            (delta.seconds % 60),
-        )
-    return delta
-
-
 def last_date_of_day(
     day_name: str, *, date_of_reference: Optional[Union[date, _datetime]] = None
 ) -> date:
@@ -200,6 +175,31 @@ def sql_server_odbc_string(
         odbc_string += "ApplicationIntent=ReadWrite;"
     odbc_string += f"WSID={getfqdn()};"
     return odbc_string
+
+
+def time_elapsed(
+    start_time: _datetime,
+    *,
+    logger: Optional[Logger] = None,
+    log_level: int = INFO,
+) -> timedelta:
+    """Return time-delta since start time.
+
+    Args:
+        start_time: Starting point to measure time elapsed since.
+        logger: Logger to emit elapsed message.
+        log_level: Level to log elapsed message at.
+    """
+    delta = _datetime.now() - start_time
+    if logger:
+        logger.log(
+            log_level,
+            "Elapsed: %s hrs, %s min, %s sec.",
+            (delta.days * 24 + delta.seconds // 3600),
+            ((delta.seconds // 60) % 60),
+            (delta.seconds % 60),
+        )
+    return delta
 
 
 def timestamp(fmt="%Y_%m_%d_T%H%M") -> str:
