@@ -1,4 +1,5 @@
 """Process manager objects."""
+from argparse import ArgumentParser
 from datetime import datetime as _datetime
 from logging import (
     DEBUG,
@@ -14,7 +15,7 @@ from os import environ
 from pathlib import Path
 from sqlite3 import connect
 from types import FunctionType
-from typing import Callable, Dict, Iterable, List, Optional, Set, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Set, Union
 
 from jinja2 import Environment, PackageLoader
 
@@ -348,3 +349,31 @@ class Pipeline:
                 member.run_status = 1
             time_elapsed(start_time, logger=log)
             log.info("%s %s.", member_name, RUN_STATUS_DESCRIPTION[1])
+
+
+def run_as_main(available_members: Mapping[str, Any]) -> None:
+    """Script execution code for running as __main__.
+
+    Args:
+        available_members: Mapping of names to object for available members to run.
+    """
+    args = ArgumentParser()
+    args.add_argument("members", nargs="*", help="Pipeline member(s) to run")
+    available_names = set(available_members)
+    member_names = args.parse_args().members
+    if member_names and available_names.issuperset(member_names):
+        members = [available_members[arg] for arg in member_names]
+        pipeline = Pipeline(*members)
+        pipeline.execute()
+    else:
+        console = StreamHandler()
+        LOG.addHandler(console)
+        if not member_names:
+            LOG.error("No pipeline member arguments.")
+        for name in member_names:
+            if name not in available_names:
+                LOG.error("`%s` not available in exec.", name)
+        LOG.error(
+            "Available objects in exec: %s",
+            ", ".join(f"`{name}`" for name in sorted(available_names)),
+        )
