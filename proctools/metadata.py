@@ -2,7 +2,7 @@
 from dataclasses import asdict, dataclass, field
 from logging import Logger, getLogger
 from pathlib import Path
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional, Union
 from urllib.parse import quote_plus
 
 from arcproc import create_dataset
@@ -179,12 +179,12 @@ class Dataset:
         return [field.name for field in self.fields]
 
     @property
-    def id_field(self) -> Field:
+    def id_field(self) -> Union[Field, None]:
         """Dataset identifier field. Will be NoneType if no single ID field."""
         return self.id_fields[0] if len(self.id_fields) == 1 else None
 
     @property
-    def id_field_name(self) -> str:
+    def id_field_name(self) -> Union[str, None]:
         """Dataset identifier field names. Will be NoneType if no single ID field."""
         return self.id_field_names[0] if len(self.id_field_names) == 1 else None
 
