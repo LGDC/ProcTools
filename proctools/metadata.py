@@ -248,9 +248,10 @@ class Dataset:
             if (create_source and not field.not_in_source)
             or (not create_source and not field.source_only)
         ]
-        return create_dataset(
+        dataset = create_dataset(
             dataset_path,
             field_metadata_list=field_metadata_list,
             geometry_type=self.geometry_type,
             spatial_reference_item=spatial_reference_wkid,
         )
+        return dataset.path
