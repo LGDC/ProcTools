@@ -63,6 +63,7 @@ def send_email_smtp(
     attachment_paths: Optional[Iterable[Union[Path, str]]] = None,
     host: str,
     port: int = 25,
+    username: Optional[str] = None,
     password: Optional[str] = None,
 ) -> None:
     """Send email via SMTP.
@@ -79,6 +80,7 @@ def send_email_smtp(
         attachment_paths: Collection of paths for files to attach to message.
         host: Host name of SMTP server.
         port: Port to connect to SMTP host on.
+        username: Username for authentication with host.
         password: Password for authentication with host.
     """
     message = MIMEMultipart()
@@ -113,9 +115,10 @@ def send_email_smtp(
             message.attach(payload=part)
     connection = SMTP(host=host, port=port)
     connection.starttls()
-    # Only bother to log in if password provided (some SMTP hosts authenticate by IP).
-    if password:
-        connection.login(user=from_address, password=password)
+    # Only bother to log in if username & password provided
+    # (some SMTP hosts authenticate by IP).
+    if username and password:
+        connection.login(user=username, password=password)
     connection.send_message(
         msg=message, from_addr=from_address, to_addrs=recipient_addresses
     )
@@ -137,6 +140,7 @@ def send_links_email(
     attachment_paths: Optional[Iterable[Union[Path, str]]] = None,
     host: str,
     port: int = 25,
+    username: Optional[str] = None,
     password: Optional[str] = None,
 ) -> None:
     """Send email with a listing of URLs via SMTP.
@@ -155,6 +159,7 @@ def send_links_email(
         attachment_paths: Collection of paths for files to attach to message.
         host: Host name of SMTP server.
         port: Port to connect to SMTP host on.
+        username: Username for authentication with host.
         password: Password for authentication with host.
     """
     # for part in ["pre", "post"]:
@@ -178,5 +183,6 @@ def send_links_email(
         attachment_paths=attachment_paths,
         host=host,
         port=port,
+        username=username,
         password=password,
     )
