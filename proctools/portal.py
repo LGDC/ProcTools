@@ -106,7 +106,8 @@ def get_item(
         raise ValueError(
             f"Item `{item_name}` "
             + ("does not exist" if len(items) == 0 else "name not unique")
-            + f" on {site.url}"
+            + f" on {site.url} / item types: "
+            + ",".join(item.type for item in items)
         )
     return item
 
