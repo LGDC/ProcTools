@@ -7,7 +7,7 @@ from logging import DEBUG, INFO, WARNING, Logger, getLogger
 from pathlib import Path
 from shutil import copy2
 from stat import S_IWRITE
-from subprocess import CalledProcessError, check_call
+import subprocess
 from types import TracebackType
 from typing import Iterable, Iterator, Optional, Type, TypeVar, Union
 from zipfile import ZIP_DEFLATED, BadZipfile, ZipFile
@@ -49,6 +49,8 @@ class NetUse(ContextDecorator):
             password: Password for authentication with resource.
         """
         self.unc_path = Path(unc_path)
+        # Pathlib ends UNC shares with backslash, which is not kosher for net use.
+        self.unc_path_str = str(self.unc_path).rstrip("\\")
         self.__username = username
         self.__password = password
 
@@ -70,19 +72,19 @@ class NetUse(ContextDecorator):
 
     def connect(self) -> None:
         """Connect to resource."""
-        call_string = f"""net use "{self}\""""
+        args = f"""net use "{self.unc_path_str}\""""
         if self.__password:
-            call_string += f" {self.__password}"
+            args += f" {self.__password}"
         if self.__username:
-            call_string += f""" /user:"{self.__username}\""""
-        check_call(call_string)
+            args += f""" /user:"{self.__username}\""""
+        subprocess.run(args=args, check=True)
 
     def disconnect(self) -> None:
         """Disconnect resource."""
-        call_string = f"""net use "{self}" /delete"""
+        args = f"""net use "{self.unc_path_str}" /delete"""
         try:
-            check_call(call_string)
-        except CalledProcessError as disconnect_error:
+            subprocess.run(args=args, check=True)
+        except subprocess.CalledProcessError as disconnect_error:
             if disconnect_error.returncode == 2:
                 LOG.debug("Network resource `%s` already disconnected.", self.unc_path)
 
