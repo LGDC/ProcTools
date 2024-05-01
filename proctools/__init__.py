@@ -27,7 +27,7 @@ from proctools.filesystem import (
     update_file,
     update_replica_folder,
 )
-from proctools.manager import Batch, Job, Pipeline
+from proctools.manager import Batch, Job, Pipeline, run_as_main
 from proctools.media import (
     IMAGE_FILE_EXTENSIONS,
     WORLD_FILE_EXTENSIONS,
