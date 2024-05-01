@@ -87,18 +87,20 @@ def send_email_smtp(
     message.add_header("From", from_address)
     recipient_addresses = []
     if to_addresses:
-        to_addresses = list(to_addresses)
+        to_addresses = list(extract_email_addresses(to_addresses))
         message.add_header("To", ",".join(to_addresses))
         recipient_addresses.extend(to_addresses)
     if copy_addresses:
-        copy_addresses = list(copy_addresses)
+        copy_addresses = list(extract_email_addresses(copy_addresses))
         message.add_header("Cc", ",".join(copy_addresses))
         recipient_addresses.extend(copy_addresses)
     if blind_copy_addresses:
-        blind_copy_addresses = list(blind_copy_addresses)
+        blind_copy_addresses = list(extract_email_addresses(blind_copy_addresses))
         recipient_addresses.extend(blind_copy_addresses)
     if reply_to_addresses:
-        message.add_header("Reply-To", ",".join(reply_to_addresses))
+        message.add_header(
+           "Reply-To", ",".join(extract_email_addresses(reply_to_addresses))
+        )
     if subject:
         message.add_header("Subject", subject)
     if body:
