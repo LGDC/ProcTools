@@ -159,6 +159,51 @@ def clean_pdf(
     return result
 
 
+def clean_pdf_inplace(pdf_path: Union[Path, str]) -> str:
+    """Clean PDF file free of scripting - pseudo in-place cleaning.
+
+    Args:
+        pdf_path: Path to PDF file.
+        output_path: Path to cleaned PDF file.
+        overwrite_older_only: If True and PDF already exists, will only overwrite if
+            modified date is older than source file.
+
+    Returns:
+        Result key--"cleaned", "failed to clean", "no scripting to clean", or "no
+        cleaning necessary".
+
+    Raises:
+        FileNotFoundError: If PDF file not an extant file.
+    """
+    pdf_path = Path(pdf_path)
+    if not pdf_path.is_file():
+        raise FileNotFoundError(f"PDF file '{pdf_path}` not extant file.")
+
+    with tempfile.TemporaryDirectory() as temp_dirpath:
+        temp_dirpath = Path(temp_dirpath)
+        temp_filepath = temp_dirpath / pdf_path.name
+        try:
+            _, cleaned = pdfid(
+                file=pdf_path,
+                disarm=True,
+                output_file=temp_filepath,
+                return_cleaned=True,
+            )
+        # I believe this means there is no header with JavaScript in it.
+        except UnboundLocalError:
+            cleaned = None
+    if cleaned is None:
+        result = "original OK"
+    elif cleaned:
+        shutil.move(src=temp_filepath, dst=pdf_path)
+        LOG.warning("`%s` had active content--cleaned.", pdf_path.name)
+        result = "cleaned"
+    else:
+        temp_filepath.unlink()
+        result = "failed to clean"
+    return result
+
+
 def clean_pdfs(
     pdf_paths: Iterable[Union[Path, str]],
     *,
