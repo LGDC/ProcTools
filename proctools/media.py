@@ -3,7 +3,7 @@ from collections import Counter
 from datetime import datetime as _datetime
 from logging import INFO, Logger, getLogger
 from pathlib import Path
-from subprocess import check_call
+import subprocess
 from time import sleep
 from typing import Iterable, List, Optional, Sequence, Union
 
@@ -75,9 +75,19 @@ def _cmd_convert_image_to_pdf(
     image2pdf_path: Path = (
         Path(__file__).parent.parent / "resources\\apps\\Image2PDF\\image2pdf.exe"
     )
-    check_call(
-        f"{image2pdf_path} -r EUIEUFBFYUOQVPAT"
-        f""" -i "{image_path}" -o "{output_path}" -g overwrite"""
+    subprocess.run(
+        args=[
+            image2pdf_path,
+            "-r",
+            "EUIEUFBFYUOQVPAT",
+            "-i",
+            image_path,
+            "-o",
+            output_path,
+            "-g",
+            "overwrite",
+        ],
+        check=True,
     )
     # Image2PDF returns before the process of the underlying library completes. So we
     # will need to wait until the PDF shows up in the file system.
