@@ -245,7 +245,7 @@ def clean_pdfs(
         if result == "cleaned":
             # Replace original with now-cleaned one.
             pdf_path.unlink()
-            cleaned_path.rename(pdf_path)
+            cleaned_path.replace(pdf_path)
         if log_evaluated_division and i % log_evaluated_division == 0:
             logger.info("Evaluated %s PDFs.", format(i, ",d"))
     log_entity_states("PDFs", states, logger=logger, log_level=INFO)
